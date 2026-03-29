@@ -1,0 +1,84 @@
+<% content_for :title, "Accounts | Family AI Brain" %>
+
+<section class="workspace-shell">
+  <div class="workspace-hero">
+    <p class="label-kicker">Accounts</p>
+    <div class="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div class="max-w-3xl">
+        <h1 class="font-['Iowan_Old_Style','Palatino_Linotype',serif] text-5xl leading-none font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-6xl">
+          Акаунти як окремі контексти життя.
+        </h1>
+        <p class="mt-5 max-w-2xl text-lg leading-8 text-[var(--ink-soft)]">
+          Один користувач може мати кілька акаунтів: особистий, робочий, для сім’ї дружини чи батьків. Кожен акаунт містить свої сім’ї, правила, події й окремий контекст для AI.
+        </p>
+      </div>
+      <%= link_to "Створити акаунт", new_account_path, class: "cta-primary" %>
+    </div>
+  </div>
+
+  <div class="workspace-grid">
+    <div class="space-y-6">
+      <div class="data-card">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="label-kicker">Your workspaces</p>
+            <h2 class="entity-title">Мої акаунти</h2>
+          </div>
+          <span class="meta-pill"><%= pluralize(@accounts.count, "account") %></span>
+        </div>
+
+        <div class="entity-list mt-6">
+          <% if @accounts.any? %>
+            <% @accounts.each do |account| %>
+              <article class="entity-card">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div class="space-y-3">
+                    <p class="label-kicker"><%= account.active? ? "Active workspace" : "Draft workspace" %></p>
+                    <h3 class="font-['Iowan_Old_Style','Palatino_Linotype',serif] text-3xl font-semibold text-[var(--ink)]"><%= account.name %></h3>
+                    <p class="muted-copy max-w-2xl"><%= account.description.presence || "Окремий контекст для AI, сімей і задач без змішування особистого та робочого." %></p>
+                    <div class="meta-row">
+                      <span class="meta-pill"><%= account.email %></span>
+                      <span class="meta-pill"><%= pluralize(account.families.count, "family") %></span>
+                      <span class="meta-pill"><%= pluralize(account.families.sum { |family| family.family_members.size }, "member") %></span>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap gap-3">
+                    <%= link_to "Відкрити", account_path(account), class: "cta-primary" %>
+                    <%= link_to "Редагувати", edit_account_path(account), class: "cta-secondary" %>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          <% else %>
+            <div class="empty-state">
+              У тебе ще немає акаунтів. Почни з `Personal` або `Work`, а далі всередині кожного додаси окремі сім’ї.
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <aside class="workspace-sidebar">
+      <div class="data-card">
+        <p class="label-kicker">Structure</p>
+        <h2 class="entity-title">Як це працює</h2>
+        <div class="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-soft)]">
+          <p>`Акаунт` це контейнер контексту. Він може бути особистим, робочим або тематичним.</p>
+          <p>`Сім’я` живе всередині акаунта. Наприклад: своя сім’я, сім’я дружини, батьки.</p>
+          <p>`Член сім’ї` це окрема сутність, яку можна лишити просто записом або прив’язати до існуючого user чи створити нового.</p>
+        </div>
+      </div>
+
+      <div class="form-panel">
+        <p class="label-kicker">Next step</p>
+        <h2 class="entity-title text-2xl">Рекомендований старт</h2>
+        <div class="mt-5 space-y-3 text-sm leading-7 text-[var(--ink-soft)]">
+          <p>1. Створи `Personal` акаунт.</p>
+          <p>2. Додай у нього свою сім’ю.</p>
+          <p>3. Створи окремий `Work` акаунт, щоб не змішувати роботу й дім.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>

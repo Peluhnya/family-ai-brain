@@ -1,0 +1,17 @@
+<% content_for :title, "Edit Family | Family AI Brain" %>
+
+<section class="workspace-shell">
+  <div class="workspace-hero">
+    <p class="label-kicker">Edit family</p>
+    <h1 class="mt-4 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-5xl leading-none font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-6xl">
+      <%= @family.name %>
+    </h1>
+    <p class="mt-5 max-w-2xl text-lg leading-8 text-[var(--ink-soft)]">
+      Онови сімейний контекст: назву, timezone і locale. Це впливає на нагадування, події та відповіді AI.
+    </p>
+  </div>
+
+  <div class="form-panel">
+    <%= render "form", family: @family, account: @account %>
+  </div>
+</section>

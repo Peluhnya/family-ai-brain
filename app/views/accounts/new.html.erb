@@ -1,0 +1,15 @@
+<% content_for :title, "New Account | Family AI Brain" %>
+
+<section class="workspace-shell">
+  <div class="workspace-hero">
+    <p class="label-kicker">Create workspace</p>
+    <h1 class="mt-4 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-5xl leading-none font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-6xl">
+      Новий акаунт.
+    </h1>
+    <p class="mt-5 max-w-2xl text-lg leading-8 text-[var(--ink-soft)]">
+      Створи окремий простір, щоб розділити сімейний і робочий контекст. У кожному акаунті далі можна створити кілька сімей.
+    </p>
+  </div>
+
+  <%= render "form", account: @account %>
+</section>

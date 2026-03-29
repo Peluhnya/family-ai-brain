@@ -1,0 +1,15 @@
+<% content_for :title, "Edit Account | Family AI Brain" %>
+
+<section class="workspace-shell">
+  <div class="workspace-hero">
+    <p class="label-kicker">Edit workspace</p>
+    <h1 class="mt-4 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-5xl leading-none font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-6xl">
+      <%= @account.name %>
+    </h1>
+    <p class="mt-5 max-w-2xl text-lg leading-8 text-[var(--ink-soft)]">
+      Онови назву, опис або призначення акаунта, щоб AI чітко розумів, який саме контекст тут зберігається.
+    </p>
+  </div>
+
+  <%= render "form", account: @account %>
+</section>

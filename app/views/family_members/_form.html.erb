@@ -1,0 +1,51 @@
+<%= form_with(model: family_member, url: family_member.persisted? ? family_member_path(family_member) : family_family_members_path(family), class: "space-y-5") do |form| %>
+  <% if family_member.errors.any? %>
+    <div class="error-box">
+      <h2 class="text-base font-semibold"><%= pluralize(family_member.errors.count, "error") %> blocked this member:</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-6">
+        <% family_member.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :name, "Ім’я", class: "form-label" %>
+      <%= form.text_field :name, class: "form-input", placeholder: "Anna, Oleg, Sofia" %>
+    </div>
+    <div>
+      <%= form.label :role, "Роль", class: "form-label" %>
+      <%= form.text_field :role, class: "form-input", placeholder: "mother, father, child, grandparent" %>
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :birthdate, "Дата народження", class: "form-label" %>
+      <%= form.date_field :birthdate, class: "form-input" %>
+    </div>
+    <div>
+      <%= form.label :permissions_text, "Permissions", class: "form-label" %>
+      <%= form.text_field :permissions_text, value: Array(family_member.permissions).join(", "), class: "form-input", placeholder: "calendar, reminders, finances" %>
+    </div>
+  </div>
+
+  <div>
+    <%= form.label :linked_user_id, "Прив’язати існуючого user", class: "form-label" %>
+    <%= select_tag "family_member[linked_user_id]", options_for_select([["Без прив’язки", ""]] + available_users.map { |user| [user.email, user.id] }, family_member.users.first&.id), class: "form-select" %>
+  </div>
+
+  <div>
+    <%= label_tag "family_member_new_user_email", "Або створити нового user по email", class: "form-label" %>
+    <%= email_field_tag "family_member[new_user_email]", nil, class: "form-input", placeholder: "new-member@example.com" %>
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit(family_member.persisted? ? "Оновити члена сім’ї" : "Додати члена сім’ї", class: "cta-primary cursor-pointer") %>
+    <% if family_member.persisted? %>
+      <%= link_to "Назад до сім’ї", family_path(family), class: "cta-secondary" %>
+    <% end %>
+  </div>
+<% end %>

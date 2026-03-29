@@ -1,0 +1,17 @@
+<% content_for :title, "Edit Family Member | Family AI Brain" %>
+
+<section class="workspace-shell">
+  <div class="workspace-hero">
+    <p class="label-kicker">Edit member</p>
+    <h1 class="mt-4 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-5xl leading-none font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-6xl">
+      <%= @family_member.name %>
+    </h1>
+    <p class="mt-5 max-w-2xl text-lg leading-8 text-[var(--ink-soft)]">
+      Онови роль члена сім’ї, дату народження, права доступу і зв’язок з реальним user.
+    </p>
+  </div>
+
+  <div class="form-panel">
+    <%= render "form", family: @family_member.family, family_member: @family_member, available_users: @available_users %>
+  </div>
+</section>

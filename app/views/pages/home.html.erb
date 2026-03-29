@@ -1,0 +1,204 @@
+<% content_for :title, "Family AI Brain | AI-система для життя сім'ї" %>
+<% content_for :meta_description, "Єдиний AI brain для сім'ї: пам'ять про події, автоматизація задач, контекст з календаря і knowledge, GDPR-first підхід." %>
+
+<section class="mx-auto flex w-full max-w-7xl flex-col gap-16 px-5 pb-16 pt-8 sm:px-6 lg:px-8 lg:pb-24 lg:pt-10">
+  <div class="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] lg:items-center">
+    <div class="max-w-3xl">
+      <div class="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-4 py-2 text-xs font-medium uppercase tracking-[0.28em] text-[var(--muted)] shadow-sm backdrop-blur">
+        AI system for family life
+      </div>
+      <h1 class="mt-6 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-5xl leading-none font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-6xl lg:text-7xl">
+        Менше рутини.
+        <span class="block text-[var(--accent)]">Більше життя сімʼї.</span>
+      </h1>
+      <p class="mt-6 max-w-2xl font-['Avenir_Next','Segoe_UI',sans-serif] text-lg leading-8 text-[var(--muted)] sm:text-xl">
+        Family AI Brain пам’ятає події, збирає контекст, запускає автоматичні дії і допомагає сім’ї не губитися між календарями, нотатками та нагадуваннями.
+      </p>
+
+      <div class="mt-8 flex flex-col gap-4 sm:flex-row">
+        <%= link_to(user_signed_in? ? accounts_path : new_user_registration_path, class: "inline-flex items-center justify-center rounded-full bg-[var(--accent)] px-7 py-4 text-base font-medium text-white shadow-[0_24px_50px_rgba(33,74,68,0.24)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)]") do %>
+          <%= user_signed_in? ? "Відкрити workspace" : "Створити акаунт" %>
+        <% end %>
+        <%= link_to new_user_session_path, class: "inline-flex items-center justify-center rounded-full border border-[var(--line-strong)] bg-white/80 px-7 py-4 text-base font-medium text-[var(--ink)] shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-white" do %>
+          Увійти
+        <% end %>
+      </div>
+
+      <div class="mt-10 grid gap-4 sm:grid-cols-3">
+        <div class="glass-panel p-5">
+          <p class="text-sm uppercase tracking-[0.2em] text-[var(--muted)]">Проблема</p>
+          <p class="mt-3 text-base leading-7 text-[var(--ink-soft)]">Розрізнені інструменти, складна координація і постійно забуті справи.</p>
+        </div>
+        <div class="glass-panel p-5">
+          <p class="text-sm uppercase tracking-[0.2em] text-[var(--muted)]">Рішення</p>
+          <p class="mt-3 text-base leading-7 text-[var(--ink-soft)]">Єдиний AI brain з пам’яттю, контекстом і автоматичними діями.</p>
+        </div>
+        <div class="glass-panel p-5">
+          <p class="text-sm uppercase tracking-[0.2em] text-[var(--muted)]">Цінність</p>
+          <p class="mt-3 text-base leading-7 text-[var(--ink-soft)]">Один центр рішень для сім’ї замість набору неузгоджених сервісів.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="relative">
+      <div class="absolute inset-x-10 top-8 h-40 rounded-full bg-[rgba(250,204,21,0.22)] blur-3xl"></div>
+      <div class="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,241,230,0.78))] p-6 shadow-[0_30px_80px_rgba(43,40,34,0.12)] backdrop-blur">
+        <div class="flex items-center justify-between border-b border-[var(--line)] pb-4">
+          <div>
+            <p class="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">Today overview</p>
+            <h2 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold">Family operating system</h2>
+          </div>
+          <span class="rounded-full bg-[var(--sand)] px-3 py-1 text-xs font-medium text-[var(--accent)]">AI brain active</span>
+        </div>
+
+        <div class="mt-5 space-y-4">
+          <div class="rounded-3xl bg-[var(--panel-strong)] p-5">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium text-[var(--muted)]">Context Builder</p>
+              <span class="status-pill">online</span>
+            </div>
+            <p class="mt-3 text-sm leading-7 text-[var(--ink-soft)]">Діалог + календар + задачі + knowledge + vector search по life logs.</p>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="rounded-3xl border border-[var(--line)] bg-white/80 p-5">
+              <p class="text-sm font-medium text-[var(--muted)]">Автоматизації</p>
+              <p class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-3xl font-semibold">24/7</p>
+              <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Rule → trigger + action → worker → execution</p>
+            </div>
+            <div class="rounded-3xl border border-[var(--line)] bg-white/80 p-5">
+              <p class="text-sm font-medium text-[var(--muted)]">Memory layers</p>
+              <p class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-3xl font-semibold">4</p>
+              <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Short-term, episodic, semantic, procedural</p>
+            </div>
+          </div>
+
+          <div class="rounded-3xl border border-dashed border-[var(--line-strong)] bg-white/70 p-5">
+            <p class="text-sm font-medium text-[var(--muted)]">Тулінг</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <% ["create_reminder", "send_email", "create_event", "check_weather", "check_bank"].each do |tool| %>
+                <span class="rounded-full border border-[var(--line)] bg-[var(--sand)] px-3 py-1.5 text-xs text-[var(--ink-soft)]"><%= tool %></span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="product" class="grid gap-6 lg:grid-cols-3">
+    <div class="feature-card">
+      <span class="feature-index">01</span>
+      <h3 class="feature-title">Memory</h3>
+      <p class="feature-copy">Пам’ятає сімейні події, факти, історію діалогів і правила, щоб відповідати не в вакуумі, а в реальному сімейному контексті.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-index">02</span>
+      <h3 class="feature-title">Automation</h3>
+      <p class="feature-copy">Запускає нагадування, події, листи й інші дії автоматично, без ручного повторення одних і тих самих рутин.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-index">03</span>
+      <h3 class="feature-title">Context</h3>
+      <p class="feature-copy">Формує контекст з діалогу, календаря, задач і knowledge, щоб AI приймав рішення зі змістом, а не просто генерував текст.</p>
+    </div>
+  </section>
+
+  <section id="architecture" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)]">
+    <div class="section-card">
+      <p class="section-kicker">Pipeline</p>
+      <h2 class="section-title">Від наміру користувача до оновленої пам’яті</h2>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <% ["User", "Intent", "Context", "Memory", "LLM", "Tools", "Response", "Memory update"].each do |step| %>
+          <span class="pipeline-node"><%= step %></span>
+        <% end %>
+      </div>
+      <p class="mt-6 text-base leading-7 text-[var(--ink-soft)]">Ключова ідея продукту не в одному LLM, а в системі, яка вміє накопичувати пам’ять, будувати контекст і виконувати дії у фоновому режимі.</p>
+    </div>
+
+    <div class="section-card">
+      <p class="section-kicker">Memory System</p>
+      <h2 class="section-title">Чотири шари пам’яті</h2>
+      <div class="mt-8 grid gap-4 sm:grid-cols-2">
+        <div class="memory-card">
+          <h3>Short-term</h3>
+          <p>Останні повідомлення та `ai_interactions` для локальної розмовної логіки.</p>
+        </div>
+        <div class="memory-card">
+          <h3>Episodic</h3>
+          <p>Життєві події в `life_logs`, які формують історію сім’ї.</p>
+        </div>
+        <div class="memory-card">
+          <h3>Semantic</h3>
+          <p>Факти про сім’ю в `family_knowledge` з confidence і embeddings.</p>
+        </div>
+        <div class="memory-card">
+          <h3>Procedural</h3>
+          <p>Правила й операційна логіка в `automation_rules`.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+    <div class="section-card">
+      <p class="section-kicker">Automation Engine</p>
+      <h2 class="section-title">Rule-driven виконання</h2>
+      <p class="mt-5 text-base leading-7 text-[var(--ink-soft)]">Користувач задає правило, система визначає trigger і action, після чого background worker виконує дію без постійного ручного контролю.</p>
+      <div class="mt-8 space-y-3">
+        <% [
+          "create_reminder для побутових задач",
+          "create_event для сімейного календаря",
+          "send_email для комунікації",
+          "check_weather і check_bank для situational context"
+        ].each do |item| %>
+          <div class="rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 text-sm text-[var(--ink-soft)]"><%= item %></div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <p class="section-kicker">Data Model</p>
+      <h2 class="section-title">База даних як операційна пам’ять сім’ї</h2>
+      <div class="mt-8 grid gap-3 sm:grid-cols-2">
+        <% [
+          "families",
+          "users",
+          "ai_interactions",
+          "life_logs",
+          "family_knowledge",
+          "automation_rules",
+          "tasks",
+          "events",
+          "reminders",
+          "documents"
+        ].each do |table| %>
+          <div class="rounded-2xl border border-[var(--line)] bg-[var(--panel-strong)] px-4 py-3 font-['Avenir_Next','Segoe_UI',sans-serif] text-sm font-medium text-[var(--ink)]"><%= table %></div>
+        <% end %>
+      </div>
+      <p class="mt-6 text-base leading-7 text-[var(--ink-soft)]">Фоновий memory processor аналізує діалоги, стискає старі дані, створює life logs і оновлює knowledge без втрати важливого контексту.</p>
+    </div>
+  </section>
+
+  <section class="grid gap-6 lg:grid-cols-2">
+    <div id="privacy" class="section-card">
+      <p class="section-kicker">Privacy</p>
+      <h2 class="section-title">GDPR-first за замовчуванням</h2>
+      <ul class="mt-6 space-y-3 text-base leading-7 text-[var(--ink-soft)]">
+        <li>ActiveRecord::Encryption для чутливих даних.</li>
+        <li>EU hosting як базовий принцип інфраструктури.</li>
+        <li>Архітектура, де пам’ять і автоматизація не жертвують приватністю.</li>
+      </ul>
+    </div>
+
+    <div id="pricing" class="section-card bg-[linear-gradient(180deg,rgba(33,74,68,0.96),rgba(24,56,51,0.96))] text-white">
+      <p class="section-kicker text-white/70">Monetization</p>
+      <h2 class="section-title text-white">€10–20 / month</h2>
+      <p class="mt-5 text-base leading-7 text-white/78">Базова модель підписки з premium features та integrations для сімей, яким потрібен не чат-бот, а постійний цифровий операційний шар.</p>
+      <div class="mt-8 flex flex-col gap-4 sm:flex-row">
+        <%= link_to "Почати зараз", new_user_registration_path, class: "inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-medium text-[var(--accent)] transition hover:-translate-y-0.5 hover:bg-[var(--cream)]" %>
+        <%= link_to "Увійти в акаунт", new_user_session_path, class: "inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-white/8" %>
+      </div>
+    </div>
+  </section>
+</section>

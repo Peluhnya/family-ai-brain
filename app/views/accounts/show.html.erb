@@ -1,0 +1,81 @@
+<% content_for :title, "#{@account.name} | Family AI Brain" %>
+
+<section class="workspace-shell">
+  <div class="workspace-hero">
+    <p class="label-kicker"><%= @account.active? ? "Active account" : "Draft account" %></p>
+    <div class="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div class="max-w-3xl">
+        <h1 class="font-['Iowan_Old_Style','Palatino_Linotype',serif] text-5xl leading-none font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-6xl">
+          <%= @account.name %>
+        </h1>
+        <p class="mt-5 text-lg leading-8 text-[var(--ink-soft)]">
+          <%= @account.description.presence || "Цей акаунт тримає окремий AI-контекст, у якому можна розділяти сім’ї, правила, задачі та автоматизації." %>
+        </p>
+        <div class="meta-row mt-5">
+          <span class="meta-pill"><%= @account.email %></span>
+          <span class="meta-pill"><%= pluralize(@families.count, "family") %></span>
+          <span class="meta-pill"><%= pluralize(@families.sum { |family| family.family_members.size }, "member") %></span>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <%= link_to "Редагувати акаунт", edit_account_path(@account), class: "cta-secondary" %>
+        <%= button_to "Видалити акаунт", account_path(@account), method: :delete, class: "cta-primary cursor-pointer bg-rose-600 hover:bg-rose-500", data: { turbo_confirm: "Delete this account and all nested families?" } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="workspace-grid">
+    <div class="space-y-6">
+      <div class="data-card">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="label-kicker">Families</p>
+            <h2 class="entity-title">Сім’ї в акаунті</h2>
+          </div>
+          <%= link_to "Усі акаунти", accounts_path, class: "cta-secondary" %>
+        </div>
+
+        <div class="entity-list mt-6">
+          <% if @families.any? %>
+            <% @families.each do |family| %>
+              <article class="entity-card">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div class="space-y-3">
+                    <p class="label-kicker"><%= family.locale.presence || "family space" %></p>
+                    <h3 class="font-['Iowan_Old_Style','Palatino_Linotype',serif] text-3xl font-semibold text-[var(--ink)]"><%= family.name %></h3>
+                    <div class="meta-row">
+                      <span class="meta-pill"><%= family.timezone.presence || "Timezone not set" %></span>
+                      <span class="meta-pill"><%= family.locale.presence || "Locale not set" %></span>
+                      <span class="meta-pill"><%= pluralize(family.family_members.count, "member") %></span>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap gap-3">
+                    <%= link_to "Відкрити сім’ю", family_path(family), class: "cta-primary" %>
+                    <%= link_to "Редагувати", edit_family_path(family), class: "cta-secondary" %>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          <% else %>
+            <div class="empty-state">
+              У цьому акаунті ще немає сімей. Додай свою сім’ю, сім’ю дружини або батьків як окремі контексти всередині цього workspace.
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <aside class="workspace-sidebar">
+      <div class="form-panel">
+        <p class="label-kicker">New family</p>
+        <h2 class="entity-title text-2xl">Додати сім’ю</h2>
+        <p class="mt-3 muted-copy">Кожна сім’я всередині акаунта матиме власних членів, події і knowledge, але лишиться в межах цього контексту.</p>
+        <div class="mt-5">
+          <%= render "families/form", family: @family, account: @account %>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>

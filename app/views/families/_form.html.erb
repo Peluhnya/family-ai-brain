@@ -1,0 +1,37 @@
+<%= form_with(model: family, url: family.new_record? ? account_families_path(account) : family_path(family), class: "space-y-5") do |form| %>
+  <% if family.errors.any? %>
+    <div class="error-box">
+      <h2 class="text-base font-semibold"><%= pluralize(family.errors.count, "error") %> blocked this family:</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-6">
+        <% family.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :name, "Назва сім’ї", class: "form-label" %>
+    <%= form.text_field :name, class: "form-input", placeholder: "My family, Wife family, Parents" %>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :timezone, "Timezone", class: "form-label" %>
+      <%= form.text_field :timezone, class: "form-input", placeholder: "Europe/Berlin" %>
+    </div>
+    <div>
+      <%= form.label :locale, "Locale", class: "form-label" %>
+      <%= form.text_field :locale, class: "form-input", placeholder: "uk" %>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit(family.new_record? ? "Створити сім’ю" : "Оновити сім’ю", class: "cta-primary cursor-pointer") %>
+    <% if family.persisted? %>
+      <%= link_to "Назад до сім’ї", family_path(family), class: "cta-secondary" %>
+    <% else %>
+      <%= link_to "Назад до акаунта", account_path(account), class: "cta-secondary" %>
+    <% end %>
+  </div>
+<% end %>

@@ -1,0 +1,17 @@
+<% content_for :title, "New Family | Family AI Brain" %>
+
+<section class="workspace-shell">
+  <div class="workspace-hero">
+    <p class="label-kicker">New family</p>
+    <h1 class="mt-4 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-5xl leading-none font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-6xl">
+      Нова сім’я в акаунті <%= @account.name %>.
+    </h1>
+    <p class="mt-5 max-w-2xl text-lg leading-8 text-[var(--ink-soft)]">
+      Сім’я це окремий соціальний граф усередині акаунта. Далі в ній додаються члени, ролі й прив’язки до користувачів.
+    </p>
+  </div>
+
+  <div class="form-panel">
+    <%= render "form", family: @family, account: @account %>
+  </div>
+</section>

@@ -1,0 +1,38 @@
+<%= form_with(model: account, class: "form-panel space-y-5") do |form| %>
+  <% if account.errors.any? %>
+    <div class="error-box">
+      <h2 class="text-base font-semibold"><%= pluralize(account.errors.count, "error") %> blocked this account:</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-6">
+        <% account.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :name, "Назва акаунта", class: "form-label" %>
+      <%= form.text_field :name, class: "form-input", placeholder: "Personal, Work, Parents, Wife family" %>
+    </div>
+    <div>
+      <%= form.label :email, "Контактний email", class: "form-label" %>
+      <%= form.email_field :email, class: "form-input", placeholder: "workspace@familybrain.ai" %>
+    </div>
+  </div>
+
+  <div>
+    <%= form.label :description, "Опис контексту", class: "form-label" %>
+    <%= form.text_area :description, rows: 5, class: "form-input", placeholder: "Наприклад: особистий контекст для моєї сім’ї. Або окремий робочий акаунт, де AI не бачить домашні дані." %>
+  </div>
+
+  <label class="flex items-center gap-3 text-sm text-[var(--ink-soft)]">
+    <%= form.check_box :active, class: "form-checkbox" %>
+    <span>Акаунт активний і готовий для створення сімей</span>
+  </label>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit(account.new_record? ? "Створити акаунт" : "Оновити акаунт", class: "cta-primary cursor-pointer") %>
+    <%= link_to "Назад до акаунтів", accounts_path, class: "cta-secondary" %>
+  </div>
+<% end %>
