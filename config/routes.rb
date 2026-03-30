@@ -6,6 +6,9 @@ Rails.application.routes.draw do
   end
   resources :families, only: %i[show edit update destroy] do
     post :run_automation_rules, on: :member
+    get ":tab", on: :member, action: :show, as: :tab, constraints: {
+      tab: /chat|documents|reminders|connections|events|tasks|automations|knowledge|logs|members/
+    }
     resources :family_members, only: :create
     resources :ai_interactions, only: :create
     resources :life_logs, only: :create

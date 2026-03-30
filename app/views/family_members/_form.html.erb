@@ -1,4 +1,6 @@
+<% active_tab = local_assigns.fetch(:active_tab, "members") %>
 <%= form_with(model: family_member, url: family_member.persisted? ? family_member_path(family_member) : family_family_members_path(family), class: "space-y-5") do |form| %>
+  <%= hidden_field_tag :return_tab, active_tab %>
   <% if family_member.errors.any? %>
     <div class="error-box">
       <h2 class="text-base font-semibold"><%= pluralize(family_member.errors.count, "error") %> blocked this member:</h2>
@@ -45,7 +47,7 @@
   <div class="flex flex-wrap gap-3">
     <%= form.submit(family_member.persisted? ? "Оновити члена сім’ї" : "Додати члена сім’ї", class: "cta-primary cursor-pointer") %>
     <% if family_member.persisted? %>
-      <%= link_to "Назад до сім’ї", family_path(family), class: "cta-secondary" %>
+      <%= link_to "Назад до сім’ї", family_tab_href(family, "members"), class: "cta-secondary" %>
     <% end %>
   </div>
 <% end %>

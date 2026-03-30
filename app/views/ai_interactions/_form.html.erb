@@ -1,0 +1,14 @@
+<% active_tab = local_assigns.fetch(:active_tab, "chat") %>
+<%= form_with(model: ai_interaction, url: family_ai_interactions_path(family), class: "space-y-4", id: "ai_interaction_form") do |form| %>
+  <%= hidden_field_tag :return_tab, active_tab %>
+  <div>
+    <%= form.label :content, "Повідомлення для Family Brain", class: "form-label" %>
+    <%= form.text_area :content, rows: 4, class: "form-input", placeholder: "Напиши запит для сімейного AI..." %>
+  </div>
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit "Надіслати в чат", class: "cta-primary cursor-pointer" %>
+    <% if ENV["OPENAI_API_KEY"].blank? && !family.account.ollama? %>
+      <span class="meta-pill">OPENAI_API_KEY missing: зараз працює fallback reply</span>
+    <% end %>
+  </div>
+<% end %>

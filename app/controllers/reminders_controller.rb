@@ -1,4 +1,6 @@
 class RemindersController < ApplicationController
+  include FamilyPageContext
+
   before_action :authenticate_user!
   before_action :set_family
 
@@ -6,9 +8,9 @@ class RemindersController < ApplicationController
     @reminder = @family.reminders.new(reminder_params)
 
     if @reminder.save
-      redirect_to family_path(@family), notice: "Reminder was successfully created."
+      redirect_to family_tab_redirect_path(@family, "reminders"), notice: "Reminder was successfully created."
     else
-      prepare_family_state
+      prepare_family_page(family: @family, active_tab: "reminders", form_overrides: { reminder_form: @reminder })
       render "families/show", status: :unprocessable_entity
     end
   end
@@ -21,31 +23,5 @@ class RemindersController < ApplicationController
 
   def reminder_params
     params.expect(reminder: %i[title trigger_at channel status])
-  end
-
-  def prepare_family_state
-    @account = @family.account
-    @families = @account.families.includes(family_members: :member_users).order(:name)
-    linked_ids = @account.families.joins(family_members: :member_users).distinct.pluck("member_users.user_id")
-    @available_users = User.where(id: linked_ids + [current_user.id]).or(User.where(email: current_user.email)).order(:email)
-    @family_member_form = @family.family_members.new
-    @ai_interactions = @family.ai_interactions.includes(:user).order(:created_at)
-    @ai_interaction = @family.ai_interactions.new
-    @life_logs = @family.life_logs.priority_first.limit(8)
-    @life_log_form = @family.life_logs.new(happened_at: Time.current, importance: 0.7, event_type: "routine")
-    @family_knowledge_items = @family.family_knowledge.priority_first.limit(8)
-    @family_knowledge_form = @family.family_knowledge.new(confidence: 0.8, source: "manual")
-    @documents = @family.documents.recent_first.limit(10)
-    @document_form = @family.documents.new
-    @events = @family.events.upcoming_first.limit(10)
-    @event_form = @family.events.new(start_time: Time.current.change(min: 0) + 1.hour, end_time: Time.current.change(min: 0) + 2.hours, source: "manual")
-    @calendar_connections = @family.calendar_connections.active_first.limit(10)
-    @calendar_connection_form = @family.calendar_connections.new(provider: "google_calendar", active: true)
-    @reminders = @family.reminders.upcoming_first.limit(10)
-    @reminder_form = @reminder
-    @tasks = @family.tasks.open_first.limit(10)
-    @task_form = @family.tasks.new(status: "pending", priority: 3)
-    @automation_rules = @family.automation_rules.active_first.limit(8)
-    @automation_rule_form = @family.automation_rules.new(active: true, template_key: "daily_ai_note")
   end
 end

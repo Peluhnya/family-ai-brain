@@ -1,0 +1,46 @@
+<div class="workspace-grid">
+  <section class="data-card">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <p class="label-kicker">Members</p>
+        <h2 class="entity-title text-2xl">Члени сім’ї</h2>
+      </div>
+      <span class="meta-pill"><%= pluralize(@family.family_members.count, "member") %></span>
+    </div>
+
+    <div class="entity-list mt-6">
+      <% if @family.family_members.any? %>
+        <% @family.family_members.includes(:users).order(:name).each do |member| %>
+          <article class="entity-card">
+            <p class="label-kicker"><%= member.role.presence || "family member" %></p>
+            <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= member.name %></h3>
+            <p class="mt-3 muted-copy">
+              <% if member.users.any? %>
+                linked: <%= member.users.map(&:email).join(", ") %>
+              <% else %>
+                без linked user
+              <% end %>
+            </p>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <%= link_to "Редагувати", edit_family_member_path(member), class: "cta-secondary" %>
+            </div>
+          </article>
+        <% end %>
+      <% else %>
+        <div class="empty-state">
+          Додай членів сім’ї, щоб chat міг бачити реальний сімейний контекст.
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="workspace-sidebar">
+    <div class="form-panel">
+      <p class="label-kicker">New member</p>
+      <h2 class="entity-title text-2xl">Додати члена сім’ї</h2>
+      <div class="mt-6">
+        <%= render "family_members/form", family: @family, family_member: @family_member_form, available_users: @available_users, active_tab: @active_family_tab %>
+      </div>
+    </div>
+  </aside>
+</div>

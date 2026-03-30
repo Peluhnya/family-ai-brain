@@ -1,4 +1,6 @@
+<% active_tab = local_assigns.fetch(:active_tab, "reminders") %>
 <%= form_with(model: reminder, url: family_reminders_path(family), class: "space-y-5") do |form| %>
+  <%= hidden_field_tag :return_tab, active_tab %>
   <% if reminder.errors.any? %>
     <div class="error-box">
       <h2 class="text-base font-semibold"><%= pluralize(reminder.errors.count, "error") %> blocked this reminder:</h2>

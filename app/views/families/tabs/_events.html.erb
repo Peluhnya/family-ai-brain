@@ -1,0 +1,44 @@
+<div class="workspace-grid">
+  <section class="data-card">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <p class="label-kicker">Calendar layer</p>
+        <h2 class="entity-title text-2xl">Events</h2>
+      </div>
+      <span class="meta-pill"><%= pluralize(@events.count, "event") %></span>
+    </div>
+
+    <div class="entity-list mt-6">
+      <% if @events.any? %>
+        <% @events.each do |event| %>
+          <article class="entity-card">
+            <p class="label-kicker"><%= event.source.presence || "manual" %></p>
+            <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= event.title %></h3>
+            <p class="mt-3 muted-copy"><%= event.location.presence || "Без локації" %></p>
+            <div class="meta-row mt-4">
+              <span class="meta-pill"><%= l(event.start_time, format: :short) %></span>
+              <span class="meta-pill"><%= event.end_time.present? ? l(event.end_time, format: :short) : "open end" %></span>
+              <% if event.external_id.present? %>
+                <span class="meta-pill">synced</span>
+              <% end %>
+            </div>
+          </article>
+        <% end %>
+      <% else %>
+        <div class="empty-state">
+          Тут буде календар сім’ї: школа, лікарі, дні народження, зустрічі й поїздки.
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="workspace-sidebar">
+    <div class="form-panel">
+      <p class="label-kicker">New event</p>
+      <h2 class="entity-title text-2xl">Створити подію</h2>
+      <div class="mt-6">
+        <%= render "events/form", family: @family, event: @event_form, active_tab: @active_family_tab %>
+      </div>
+    </div>
+  </aside>
+</div>

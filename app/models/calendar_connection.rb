@@ -1,4 +1,7 @@
 class CalendarConnection < ApplicationRecord
+  include FamilyTabCountsBroadcastable
+  self.family_tab_count_update_fields = %i[active]
+
   PROVIDERS = %w[google_calendar apple_calendar outlook_calendar].freeze
 
   belongs_to :family

@@ -1,4 +1,6 @@
 class Document < ApplicationRecord
+  include FamilyTabCountsBroadcastable
+
   belongs_to :family
 
   encrypts :title, :content

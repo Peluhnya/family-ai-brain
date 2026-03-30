@@ -1,0 +1,54 @@
+<div class="workspace-grid">
+  <section class="data-card">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <p class="label-kicker">Procedural memory</p>
+        <h2 class="entity-title text-2xl">Automation rules</h2>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <span class="meta-pill"><%= pluralize(@automation_rules.count, "rule") %></span>
+        <%= button_to "Run due rules", run_automation_rules_family_path(@family), method: :post, class: "cta-secondary cursor-pointer" %>
+      </div>
+    </div>
+
+    <div class="entity-list mt-6">
+      <% if @automation_rules.any? %>
+        <% @automation_rules.each do |rule| %>
+          <article class="entity-card">
+            <p class="label-kicker"><%= rule.active? ? "active" : "inactive" %></p>
+            <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= rule.name %></h3>
+            <div class="meta-row mt-4">
+              <span class="meta-pill">template: <%= rule.template_label %></span>
+              <span class="meta-pill">trigger: <%= rule.trigger_type %></span>
+              <span class="meta-pill">action: <%= rule.action_type %></span>
+              <% if rule.last_executed_at.present? %>
+                <span class="meta-pill">last run: <%= l(rule.last_executed_at, format: :short) %></span>
+              <% end %>
+            </div>
+            <div class="mt-4 space-y-3 text-sm leading-7 text-[var(--ink-soft)]">
+              <p><strong>Trigger config:</strong> <%= rule.trigger_config.to_json %></p>
+              <p><strong>Action config:</strong> <%= rule.action_config.to_json %></p>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <%= button_to "Run now", run_now_automation_rule_path(rule), method: :post, class: "cta-secondary cursor-pointer" %>
+            </div>
+          </article>
+        <% end %>
+      <% else %>
+        <div class="empty-state">
+          Тут будуть procedural rules: коли спрацьовує тригер і яку дію Family Brain має виконати.
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="workspace-sidebar">
+    <div class="form-panel">
+      <p class="label-kicker">New automation</p>
+      <h2 class="entity-title text-2xl">Створити правило</h2>
+      <div class="mt-6">
+        <%= render "automation_rules/form", family: @family, automation_rule: @automation_rule_form, active_tab: @active_family_tab %>
+      </div>
+    </div>
+  </aside>
+</div>

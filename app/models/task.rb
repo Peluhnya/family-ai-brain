@@ -1,4 +1,7 @@
 class Task < ApplicationRecord
+  include FamilyTabCountsBroadcastable
+  self.family_tab_count_update_fields = %i[status]
+
   STATUSES = %w[pending in_progress done canceled].freeze
 
   belongs_to :family

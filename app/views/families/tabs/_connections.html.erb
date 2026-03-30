@@ -1,0 +1,53 @@
+<div class="workspace-grid">
+  <section class="data-card">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <p class="label-kicker">Sync layer</p>
+        <h2 class="entity-title text-2xl">Calendar connections</h2>
+      </div>
+      <span class="meta-pill"><%= pluralize(@calendar_connections.count, "connection") %></span>
+    </div>
+
+    <div class="entity-list mt-6">
+      <% if @calendar_connections.any? %>
+        <% @calendar_connections.each do |connection| %>
+          <article class="entity-card">
+            <p class="label-kicker"><%= connection.provider %></p>
+            <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= connection.display_name.presence || connection.remote_calendar_id %></h3>
+            <div class="meta-row mt-4">
+              <span class="meta-pill"><%= connection.active? ? "active" : "inactive" %></span>
+              <span class="meta-pill"><%= connection.last_synced_at.present? ? "last sync: #{l(connection.last_synced_at, format: :short)}" : "never synced" %></span>
+              <span class="meta-pill"><%= connection.ready_for_remote_sync? ? "credentials ready" : "credentials incomplete" %></span>
+            </div>
+            <% if connection.last_error.present? %>
+              <p class="mt-3 muted-copy"><%= connection.last_error %></p>
+            <% end %>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <% if connection.google_calendar? %>
+                <%= button_to(connection.ready_for_remote_sync? ? "Reconnect Google" : "Authorize Google", authorize_google_calendar_connection_path(connection), method: :post, class: "cta-secondary cursor-pointer") %>
+                <% if connection.access_token.present? || connection.refresh_token.present? %>
+                  <%= link_to "Select calendar", select_google_calendar_calendar_connection_path(connection), class: "cta-secondary" %>
+                <% end %>
+              <% end %>
+              <%= button_to "Sync now", sync_calendar_connection_path(connection), method: :post, class: "cta-secondary cursor-pointer" %>
+            </div>
+          </article>
+        <% end %>
+      <% else %>
+        <div class="empty-state">
+          Тут будуть provider connections для sync з Google Calendar, Apple Calendar і Outlook.
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="workspace-sidebar">
+    <div class="form-panel">
+      <p class="label-kicker">New connection</p>
+      <h2 class="entity-title text-2xl">Додати календар</h2>
+      <div class="mt-6">
+        <%= render "calendar_connections/form", family: @family, calendar_connection: @calendar_connection_form, active_tab: @active_family_tab %>
+      </div>
+    </div>
+  </aside>
+</div>

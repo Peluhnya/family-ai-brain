@@ -1,4 +1,6 @@
+<% active_tab = local_assigns.fetch(:active_tab, "automations") %>
 <%= form_with(model: automation_rule, url: family_automation_rules_path(family), class: "space-y-5", data: { controller: "rule-builder" }) do |form| %>
+  <%= hidden_field_tag :return_tab, active_tab %>
   <% if automation_rule.errors.any? %>
     <div class="error-box">
       <h2 class="text-base font-semibold"><%= pluralize(automation_rule.errors.count, "error") %> blocked this automation rule:</h2>

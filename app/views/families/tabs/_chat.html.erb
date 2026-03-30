@@ -1,0 +1,36 @@
+<div class="desk-grid">
+  <div class="chat-shell">
+    <div class="chat-header">
+      <div>
+        <p class="label-kicker">AI conversation</p>
+        <h2 class="entity-title text-3xl">Family Brain Chat</h2>
+      </div>
+      <div class="meta-row">
+        <span class="meta-pill">Short-term memory</span>
+        <span class="meta-pill">Model: <%= FamilyBrain::AccountAiConfig.new(account: @account).chat_model %></span>
+      </div>
+    </div>
+
+    <div class="chat-body" data-controller="chat-scroll">
+      <%= render "ai_interactions/list", ai_interactions: @ai_interactions %>
+    </div>
+
+    <div class="composer-shell">
+      <%= render "ai_interactions/form", family: @family, ai_interaction: @ai_interaction, active_tab: @active_family_tab %>
+    </div>
+  </div>
+
+  <aside class="desk-column">
+    <div class="data-card">
+      <p class="label-kicker">Memory architecture</p>
+      <h2 class="entity-title text-2xl">Memory layers</h2>
+      <div class="mt-5 space-y-3 text-sm leading-7 text-[var(--ink-soft)]">
+        <p>`ai_interactions` це short-term memory для останніх реплік у діалозі.</p>
+        <p>`life_logs` це episodic memory про реальні сімейні події, графіки й звички.</p>
+        <p>`family_knowledge` це semantic memory для стабільних фактів, правил і вподобань.</p>
+        <p>`documents` це RAG layer для довгих reference текстів.</p>
+        <p>`events`, `reminders`, `tasks` і `automation_rules` тепер винесені в окремі сторінки, але лишаються частиною family context.</p>
+      </div>
+    </div>
+  </aside>
+</div>

@@ -200,6 +200,34 @@ body {
     @apply rounded-[1.5rem] border border-dashed border-[var(--line-strong)] bg-white/60 p-6 text-sm leading-7 text-[var(--ink-soft)];
   }
 
+  .family-tabs-shell {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .family-tab-link {
+    @apply min-w-[148px] rounded-[1.1rem] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,242,231,0.82))] px-4 py-3 shadow-sm transition hover:border-[var(--line-strong)] hover:bg-white;
+  }
+
+  .family-tab-link.active {
+    @apply border-[var(--line-strong)] bg-[linear-gradient(180deg,rgba(33,74,68,0.1),rgba(255,255,255,0.96))] shadow-[0_12px_28px_rgba(33,74,68,0.1)];
+  }
+
+  .family-tab-kicker {
+    @apply block text-[10px] uppercase tracking-[0.24em] text-[var(--muted)];
+  }
+
+  .family-tab-main {
+    @apply mt-1.5 flex items-center gap-2;
+  }
+
+  .family-tab-label {
+    @apply block font-['Iowan_Old_Style','Palatino_Linotype',serif] text-[1.15rem] leading-none font-semibold text-[var(--ink)];
+  }
+
+  .family-tab-count {
+    @apply inline-flex min-w-6 items-center justify-center rounded-full border border-[var(--line)] bg-white/80 px-2 py-0.5 text-xs leading-none text-[var(--ink-soft)];
+  }
+
   .desk-grid {
     @apply grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)];
   }

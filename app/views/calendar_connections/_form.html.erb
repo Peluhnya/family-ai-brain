@@ -1,4 +1,6 @@
+<% active_tab = local_assigns.fetch(:active_tab, "connections") %>
 <%= form_with(model: calendar_connection, url: family_calendar_connections_path(family), class: "space-y-5") do |form| %>
+  <%= hidden_field_tag :return_tab, active_tab %>
   <% if calendar_connection.errors.any? %>
     <div class="error-box">
       <h2 class="text-base font-semibold"><%= pluralize(calendar_connection.errors.count, "error") %> blocked this calendar connection:</h2>

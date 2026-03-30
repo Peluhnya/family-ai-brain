@@ -1,4 +1,6 @@
+<% active_tab = local_assigns.fetch(:active_tab, "documents") %>
 <%= form_with(model: document, url: family_documents_path(family), class: "space-y-5") do |form| %>
+  <%= hidden_field_tag :return_tab, active_tab %>
   <% if document.errors.any? %>
     <div class="error-box">
       <h2 class="text-base font-semibold"><%= pluralize(document.errors.count, "error") %> blocked this document:</h2>

@@ -1,0 +1,17 @@
+<div id="<%= dom_id(interaction) %>" class="<%= interaction.role == 'user' ? 'chat-row-user' : 'chat-row-assistant' %>">
+  <div class="<%= interaction.role == 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant' %>">
+    <div><%= simple_format(interaction.content.presence || "Думаю...") %></div>
+    <p class="chat-meta">
+      <%= interaction.role %>
+      <% if interaction.user&.email.present? %>
+        · <%= interaction.user.email %>
+      <% end %>
+      <% if interaction.model.present? %>
+        · <%= interaction.model %>
+      <% end %>
+      <% if interaction.tokens.present? %>
+        · <%= interaction.tokens %> tokens
+      <% end %>
+    </p>
+  </div>
+</div>

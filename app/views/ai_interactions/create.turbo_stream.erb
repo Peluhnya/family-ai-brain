@@ -1,0 +1,10 @@
+<%= turbo_stream.remove "chat_empty_state" %>
+<%= turbo_stream.append "chat_interactions" do %>
+  <%= render "ai_interactions/interaction", interaction: @user_message %>
+<% end %>
+<%= turbo_stream.append "chat_interactions" do %>
+  <%= render "ai_interactions/interaction", interaction: @assistant_message %>
+<% end %>
+<%= turbo_stream.replace "ai_interaction_form" do %>
+  <%= render "ai_interactions/form", family: @family, ai_interaction: @family.ai_interactions.new %>
+<% end %>

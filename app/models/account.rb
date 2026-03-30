@@ -1,6 +1,6 @@
 class Account < ApplicationRecord
   AI_ACCESS_MODES = %w[app_default personal_api_key].freeze
-  AI_PROVIDERS = %w[openai openai_compatible].freeze
+  AI_PROVIDERS = %w[openai openai_compatible ollama].freeze
 
   belongs_to :user
   has_many :families, dependent: :destroy
@@ -23,8 +23,19 @@ class Account < ApplicationRecord
     ai_provider == "openai_compatible"
   end
 
+  def ollama?
+    ai_provider == "ollama"
+  end
+
   def openai_compatible_personal_ai?
     personal_ai? && openai_compatible?
+  end
+
+  def ai_provider_label
+    return "OpenAI-compatible" if openai_compatible?
+    return "Ollama" if ollama?
+
+    "OpenAI"
   end
 
   def masked_ai_api_key

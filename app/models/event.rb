@@ -1,4 +1,7 @@
 class Event < ApplicationRecord
+  include FamilyTabCountsBroadcastable
+  self.family_tab_count_update_fields = %i[start_time]
+
   SOURCES = %w[manual ai_chat automation_rule google_calendar apple_calendar outlook_calendar imported].freeze
 
   belongs_to :family

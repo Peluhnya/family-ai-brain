@@ -1,0 +1,11 @@
+<div id="chat_interactions">
+  <% if ai_interactions.any? %>
+    <% ai_interactions.each do |interaction| %>
+      <%= render "ai_interactions/interaction", interaction: interaction %>
+    <% end %>
+  <% else %>
+    <div id="chat_empty_state" class="empty-state">
+      Чат ще порожній. Почни з чогось практичного: “Нагадай мені про садочок завтра”, “Що ми знаємо про графік дітей?” або “Склади план побутових задач на тиждень”.
+    </div>
+  <% end %>
+</div>

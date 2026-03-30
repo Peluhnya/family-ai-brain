@@ -1,0 +1,40 @@
+<div class="workspace-grid">
+  <section class="data-card">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <p class="label-kicker">Notification layer</p>
+        <h2 class="entity-title text-2xl">Reminders</h2>
+      </div>
+      <span class="meta-pill"><%= pluralize(@reminders.count, "reminder") %></span>
+    </div>
+
+    <div class="entity-list mt-6">
+      <% if @reminders.any? %>
+        <% @reminders.each do |reminder| %>
+          <article class="entity-card">
+            <p class="label-kicker"><%= reminder.status.humanize %></p>
+            <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= reminder.title %></h3>
+            <div class="meta-row mt-4">
+              <span class="meta-pill"><%= l(reminder.trigger_at, format: :short) %></span>
+              <span class="meta-pill">channel: <%= reminder.channel %></span>
+            </div>
+          </article>
+        <% end %>
+      <% else %>
+        <div class="empty-state">
+          Тут будуть сімейні нагадування: оплати, покупки, дедлайни та короткі важливі follow-ups.
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="workspace-sidebar">
+    <div class="form-panel">
+      <p class="label-kicker">New reminder</p>
+      <h2 class="entity-title text-2xl">Створити нагадування</h2>
+      <div class="mt-6">
+        <%= render "reminders/form", family: @family, reminder: @reminder_form, active_tab: @active_family_tab %>
+      </div>
+    </div>
+  </aside>
+</div>

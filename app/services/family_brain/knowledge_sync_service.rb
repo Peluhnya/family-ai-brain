@@ -30,11 +30,10 @@ module FamilyBrain
 
     def call
       return [] if @text.blank?
-      account_ai_config = FamilyBrain::AccountAiConfig.new(account: @family.account)
-      return [] unless account_ai_config.available?
+      llm_client = FamilyBrain::LlmClient.new(account: @family.account)
+      return [] unless llm_client.available?
 
-      response = with_account_ai_config(account_ai_config) do
-        chat = RubyLLM.chat(model: account_ai_config.chat_model, provider: :openai, assume_model_exists: true).with_schema(FACT_SCHEMA)
+      response = llm_client.with_chat(schema: FACT_SCHEMA) do |chat|
         chat.ask(extraction_prompt)
       end
       payload = response.content.is_a?(Hash) ? response.content : {}
@@ -88,17 +87,5 @@ module FamilyBrain
       numeric.clamp(0.0, 1.0)
     end
 
-    def with_account_ai_config(config)
-      previous_api_key = RubyLLM.config.openai_api_key
-      previous_api_base = RubyLLM.config.openai_api_base
-
-      RubyLLM.config.openai_api_key = config.api_key
-      RubyLLM.config.openai_api_base = config.api_base if config.api_base.present?
-
-      yield
-    ensure
-      RubyLLM.config.openai_api_key = previous_api_key
-      RubyLLM.config.openai_api_base = previous_api_base
-    end
   end
 end

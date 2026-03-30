@@ -1,0 +1,5 @@
+<% family_tab_definitions.each do |tab| %>
+  <%= turbo_stream.replace family_tab_count_dom_id(family, tab[:key]) do %>
+    <%= render "families/tab_count", family: family, tab_key: tab[:key] %>
+  <% end %>
+<% end %>

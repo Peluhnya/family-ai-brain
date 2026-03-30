@@ -9,12 +9,13 @@ module FamilyBrain
             type: "object",
             properties: {
               title: { type: "string" },
+              evidence: { type: "string" },
               location: { type: "string" },
               source: { type: "string" },
               start_in_days: { type: "integer" },
               duration_hours: { type: "integer" }
             },
-            required: %w[title location source start_in_days duration_hours],
+            required: %w[title evidence location source start_in_days duration_hours],
             additionalProperties: false
           }
         }
@@ -30,11 +31,11 @@ module FamilyBrain
 
     def call
       return [] if @text.blank?
-      account_ai_config = FamilyBrain::AccountAiConfig.new(account: @family.account)
-      return [] unless account_ai_config.available?
+      return [] unless FamilyBrain::GroundedExtraction.temporal_reference?(@text)
+      llm_client = FamilyBrain::LlmClient.new(account: @family.account)
+      return [] unless llm_client.available?
 
-      response = with_account_ai_config(account_ai_config) do
-        chat = RubyLLM.chat(model: account_ai_config.chat_model, provider: :openai, assume_model_exists: true).with_schema(EVENT_SCHEMA)
+      response = llm_client.with_chat(schema: EVENT_SCHEMA) do |chat|
         chat.ask(extraction_prompt)
       end
       payload = response.content.is_a?(Hash) ? response.content : {}
@@ -48,8 +49,10 @@ module FamilyBrain
 
     def extraction_prompt
       <<~PROMPT
-        Extract only explicit family calendar events from the text below.
-        Ignore vague plans, tasks, and things without a clear scheduling intent.
+        Extract only explicit family calendar events directly grounded in the user's text.
+        Ignore vague plans, tasks, brainstorming, and anything without a clear scheduling intent.
+        Do not invent events from summaries or suggestions. If date/time intent is unclear, return an empty list.
+        For each event, include an evidence field with the exact short quote from the user's text that proves both the event and its timing.
         Return up to 3 events.
         Use Ukrainian for title and location.
         source should usually be "chat:auto".
@@ -63,7 +66,12 @@ module FamilyBrain
 
     def create_event(event_payload)
       title = event_payload["title"].to_s.strip
+      evidence = event_payload["evidence"].to_s.strip
       return if title.blank?
+      return unless FamilyBrain::GroundedExtraction.meaningful_phrase?(title)
+      return unless FamilyBrain::GroundedExtraction.evidence_present?(@text, evidence)
+      return unless FamilyBrain::GroundedExtraction.title_grounded_in_evidence?(title, evidence)
+      return unless FamilyBrain::GroundedExtraction.temporal_reference?(evidence)
 
       start_time = normalize_start_time(event_payload["start_in_days"])
       return if duplicate_event?(title, start_time)
@@ -97,17 +105,5 @@ module FamilyBrain
       hours.clamp(1, 24)
     end
 
-    def with_account_ai_config(config)
-      previous_api_key = RubyLLM.config.openai_api_key
-      previous_api_base = RubyLLM.config.openai_api_base
-
-      RubyLLM.config.openai_api_key = config.api_key
-      RubyLLM.config.openai_api_base = config.api_base if config.api_base.present?
-
-      yield
-    ensure
-      RubyLLM.config.openai_api_key = previous_api_key
-      RubyLLM.config.openai_api_base = previous_api_base
-    end
   end
 end

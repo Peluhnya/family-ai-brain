@@ -1,0 +1,37 @@
+<div class="workspace-grid">
+  <section class="data-card">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <p class="label-kicker">RAG layer</p>
+        <h2 class="entity-title text-2xl">Documents</h2>
+      </div>
+      <span class="meta-pill"><%= pluralize(@documents.count, "document") %></span>
+    </div>
+
+    <div class="entity-list mt-6">
+      <% if @documents.any? %>
+        <% @documents.each do |document| %>
+          <article class="entity-card">
+            <p class="label-kicker">rag document</p>
+            <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= document.title %></h3>
+            <p class="mt-3 muted-copy"><%= truncate(document.content, length: 420) %></p>
+          </article>
+        <% end %>
+      <% else %>
+        <div class="empty-state">
+          Тут будуть документи для RAG: school policies, insurance notes, medical instructions, family agreements.
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="workspace-sidebar">
+    <div class="form-panel">
+      <p class="label-kicker">New document</p>
+      <h2 class="entity-title text-2xl">Додати документ</h2>
+      <div class="mt-6">
+        <%= render "documents/form", family: @family, document: @document_form, active_tab: @active_family_tab %>
+      </div>
+    </div>
+  </aside>
+</div>

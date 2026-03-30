@@ -1,4 +1,7 @@
 class AutomationRule < ApplicationRecord
+  include FamilyTabCountsBroadcastable
+  self.family_tab_count_update_fields = %i[active]
+
   TEMPLATES = {
     "daily_ai_note" => "Щоденне AI повідомлення",
     "weekly_ai_note" => "Щотижневе AI повідомлення",

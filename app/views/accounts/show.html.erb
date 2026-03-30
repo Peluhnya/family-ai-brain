@@ -1,4 +1,5 @@
 <% content_for :title, "#{@account.name} | Family AI Brain" %>
+<% ai_config = FamilyBrain::AccountAiConfig.new(account: @account) %>
 
 <section class="workspace-shell">
   <div class="workspace-hero">
@@ -74,10 +75,13 @@
         <h2 class="entity-title text-2xl">LLM access</h2>
         <div class="mt-5 space-y-3 text-sm leading-7 text-[var(--ink-soft)]">
           <p>Mode: <strong><%= @account.personal_ai? ? "Use my own API key" : "Use app default AI" %></strong></p>
-          <p>Provider: <strong><%= @account.openai_compatible? ? "OpenAI-compatible" : "OpenAI" %></strong></p>
-          <p>Model: <strong><%= @account.ai_model.presence || ENV.fetch("AI_CHAT_MODEL", "gpt-4o-mini") %></strong></p>
-          <p>API base: <strong><%= @account.ai_api_base.presence || ENV["OPENAI_API_BASE"].presence || "OpenAI default" %></strong></p>
-          <p>Key status: <strong><%= @account.personal_ai? ? (@account.ai_api_key.present? ? "saved securely" : "missing") : (ENV["OPENAI_API_KEY"].present? ? "app key available" : "app key missing") %></strong></p>
+          <p>Provider: <strong><%= @account.ai_provider_label %></strong></p>
+          <p>Model: <strong><%= ai_config.chat_model %></strong></p>
+          <p>API base: <strong><%= ai_config.api_base.presence || "not set" %></strong></p>
+          <% if @account.ollama? %>
+            <p>Ollama context: <strong><%= ai_config.chat_params[:num_ctx] %></strong></p>
+          <% end %>
+          <p>Key status: <strong><%= @account.ollama? ? (ai_config.api_key.present? ? "configured" : "not required") : (@account.personal_ai? ? (@account.ai_api_key.present? ? "saved securely" : "missing") : (ENV["OPENAI_API_KEY"].present? ? "app key available" : "app key missing")) %></strong></p>
           <% if @account.personal_ai? && @account.ai_api_key.present? %>
             <p>Saved key: <strong><%= @account.masked_ai_api_key %></strong></p>
           <% end %>

@@ -1,4 +1,6 @@
 class AiInteraction < ApplicationRecord
+  include FamilyTabCountsBroadcastable
+
   belongs_to :family
   belongs_to :user, optional: true
 

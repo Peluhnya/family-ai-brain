@@ -9,12 +9,13 @@ module FamilyBrain
             type: "object",
             properties: {
               title: { type: "string" },
+              evidence: { type: "string" },
               description: { type: "string" },
               assignee_name: { type: "string" },
               priority: { type: "integer" },
               due_in_days: { type: "integer" }
             },
-            required: %w[title description assignee_name priority due_in_days],
+            required: %w[title evidence description assignee_name priority due_in_days],
             additionalProperties: false
           }
         }
@@ -30,11 +31,10 @@ module FamilyBrain
 
     def call
       return [] if @text.blank?
-      account_ai_config = FamilyBrain::AccountAiConfig.new(account: @family.account)
-      return [] unless account_ai_config.available?
+      llm_client = FamilyBrain::LlmClient.new(account: @family.account)
+      return [] unless llm_client.available?
 
-      response = with_account_ai_config(account_ai_config) do
-        chat = RubyLLM.chat(model: account_ai_config.chat_model, provider: :openai, assume_model_exists: true).with_schema(TASK_SCHEMA)
+      response = llm_client.with_chat(schema: TASK_SCHEMA) do |chat|
         chat.ask(extraction_prompt)
       end
       payload = response.content.is_a?(Hash) ? response.content : {}
@@ -48,8 +48,10 @@ module FamilyBrain
 
     def extraction_prompt
       <<~PROMPT
-        Extract only explicit actionable family tasks from the text below.
-        Ignore vague ideas, completed actions, and general discussion.
+        Extract only explicit actionable family tasks directly requested or described by the user.
+        Ignore vague ideas, completed actions, assistant-style summaries, and general discussion.
+        Do not invent tasks from context. If the user did not clearly ask for a task or describe a concrete todo, return an empty list.
+        For each task, include an evidence field with the exact short quote from the user's text that proves this task exists.
         Return up to 3 tasks.
         Use Ukrainian for title and description.
         If there is no clear assignee from family members, set assignee_name to an empty string.
@@ -72,7 +74,11 @@ module FamilyBrain
 
     def create_task(task_payload)
       title = task_payload["title"].to_s.strip
+      evidence = task_payload["evidence"].to_s.strip
       return if title.blank?
+      return unless FamilyBrain::GroundedExtraction.meaningful_phrase?(title)
+      return unless FamilyBrain::GroundedExtraction.evidence_present?(@text, evidence)
+      return unless FamilyBrain::GroundedExtraction.title_grounded_in_evidence?(title, evidence)
       return if duplicate_open_task?(title)
 
       @family.tasks.create!(
@@ -109,17 +115,5 @@ module FamilyBrain
       days.days.from_now
     end
 
-    def with_account_ai_config(config)
-      previous_api_key = RubyLLM.config.openai_api_key
-      previous_api_base = RubyLLM.config.openai_api_base
-
-      RubyLLM.config.openai_api_key = config.api_key
-      RubyLLM.config.openai_api_base = config.api_base if config.api_base.present?
-
-      yield
-    ensure
-      RubyLLM.config.openai_api_key = previous_api_key
-      RubyLLM.config.openai_api_base = previous_api_base
-    end
   end
 end

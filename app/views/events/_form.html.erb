@@ -1,4 +1,6 @@
+<% active_tab = local_assigns.fetch(:active_tab, "events") %>
 <%= form_with(model: event, url: family_events_path(family), class: "space-y-5") do |form| %>
+  <%= hidden_field_tag :return_tab, active_tab %>
   <% if event.errors.any? %>
     <div class="error-box">
       <h2 class="text-base font-semibold"><%= pluralize(event.errors.count, "error") %> blocked this event:</h2>

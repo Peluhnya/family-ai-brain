@@ -1,4 +1,6 @@
 class FamilyKnowledge < ApplicationRecord
+  include FamilyTabCountsBroadcastable
+
   self.table_name = "family_knowledge"
 
   belongs_to :family

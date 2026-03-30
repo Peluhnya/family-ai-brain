@@ -1,0 +1,40 @@
+<div class="workspace-grid">
+  <section class="data-card">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <p class="label-kicker">Semantic memory</p>
+        <h2 class="entity-title text-2xl">Family knowledge</h2>
+      </div>
+      <span class="meta-pill"><%= pluralize(@family_knowledge_items.count, "fact") %></span>
+    </div>
+
+    <div class="entity-list mt-6">
+      <% if @family_knowledge_items.any? %>
+        <% @family_knowledge_items.each do |item| %>
+          <article class="entity-card">
+            <p class="label-kicker"><%= item.key %></p>
+            <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= item.value %></h3>
+            <div class="meta-row mt-4">
+              <span class="meta-pill">source: <%= item.source.presence || "unknown" %></span>
+              <span class="meta-pill">confidence: <%= format("%.1f", item.confidence) %></span>
+            </div>
+          </article>
+        <% end %>
+      <% else %>
+        <div class="empty-state">
+          Тут будуть зберігатись стабільні факти: вподобання, звички, умови та сімейні правила.
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="workspace-sidebar">
+    <div class="form-panel">
+      <p class="label-kicker">New knowledge</p>
+      <h2 class="entity-title text-2xl">Додати knowledge</h2>
+      <div class="mt-6">
+        <%= render "family_knowledge/form", family: @family, family_knowledge: @family_knowledge_form, active_tab: @active_family_tab %>
+      </div>
+    </div>
+  </aside>
+</div>

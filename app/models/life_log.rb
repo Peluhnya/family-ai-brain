@@ -1,4 +1,6 @@
 class LifeLog < ApplicationRecord
+  include FamilyTabCountsBroadcastable
+
   belongs_to :family
 
   encrypts :event_type, :summary, :raw_text

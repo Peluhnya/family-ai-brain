@@ -1,4 +1,6 @@
+<% active_tab = local_assigns.fetch(:active_tab, "tasks") %>
 <%= form_with(model: task, url: family_tasks_path(family), class: "space-y-5") do |form| %>
+  <%= hidden_field_tag :return_tab, active_tab %>
   <% if task.errors.any? %>
     <div class="error-box">
       <h2 class="text-base font-semibold"><%= pluralize(task.errors.count, "error") %> blocked this task:</h2>

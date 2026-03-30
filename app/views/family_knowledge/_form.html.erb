@@ -1,4 +1,6 @@
+<% active_tab = local_assigns.fetch(:active_tab, "knowledge") %>
 <%= form_with(model: family_knowledge, url: family_family_knowledge_index_path(family), class: "space-y-5") do |form| %>
+  <%= hidden_field_tag :return_tab, active_tab %>
   <% if family_knowledge.errors.any? %>
     <div class="error-box">
       <h2 class="text-base font-semibold"><%= pluralize(family_knowledge.errors.count, "error") %> blocked this knowledge item:</h2>
