@@ -1,13 +1,12 @@
-class FamilyKnowledgeController < ApplicationController
+class RemindersController < ApplicationController
   before_action :authenticate_user!
   before_action :set_family
 
   def create
-    @knowledge = @family.family_knowledge.new(family_knowledge_params)
-    @knowledge.embedding = FamilyBrain::EmbeddingService.embed([@knowledge.key, @knowledge.value].compact.join(": "), account: @family.account)
+    @reminder = @family.reminders.new(reminder_params)
 
-    if @knowledge.save
-      redirect_to family_path(@family), notice: "Family knowledge was successfully created."
+    if @reminder.save
+      redirect_to family_path(@family), notice: "Reminder was successfully created."
     else
       prepare_family_state
       render "families/show", status: :unprocessable_entity
@@ -20,8 +19,8 @@ class FamilyKnowledgeController < ApplicationController
     @family = Family.joins(:account).where(accounts: { user_id: current_user.id }).find(params.expect(:family_id))
   end
 
-  def family_knowledge_params
-    params.expect(family_knowledge: %i[key value source confidence])
+  def reminder_params
+    params.expect(reminder: %i[title trigger_at channel status])
   end
 
   def prepare_family_state
@@ -35,19 +34,15 @@ class FamilyKnowledgeController < ApplicationController
     @life_logs = @family.life_logs.priority_first.limit(8)
     @life_log_form = @family.life_logs.new(happened_at: Time.current, importance: 0.7, event_type: "routine")
     @family_knowledge_items = @family.family_knowledge.priority_first.limit(8)
-    @family_knowledge_form = @knowledge
+    @family_knowledge_form = @family.family_knowledge.new(confidence: 0.8, source: "manual")
     @documents = @family.documents.recent_first.limit(10)
     @document_form = @family.documents.new
     @events = @family.events.upcoming_first.limit(10)
-    @event_form = @family.events.new(
-      start_time: Time.current.change(min: 0) + 1.hour,
-      end_time: Time.current.change(min: 0) + 2.hours,
-      source: "manual"
-    )
+    @event_form = @family.events.new(start_time: Time.current.change(min: 0) + 1.hour, end_time: Time.current.change(min: 0) + 2.hours, source: "manual")
     @calendar_connections = @family.calendar_connections.active_first.limit(10)
     @calendar_connection_form = @family.calendar_connections.new(provider: "google_calendar", active: true)
     @reminders = @family.reminders.upcoming_first.limit(10)
-    @reminder_form = @family.reminders.new(trigger_at: Time.current.change(min: 0) + 1.hour, channel: "app", status: "pending")
+    @reminder_form = @reminder
     @tasks = @family.tasks.open_first.limit(10)
     @task_form = @family.tasks.new(status: "pending", priority: 3)
     @automation_rules = @family.automation_rules.active_first.limit(8)

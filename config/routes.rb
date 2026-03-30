@@ -11,8 +11,18 @@ Rails.application.routes.draw do
     resources :life_logs, only: :create
     resources :family_knowledge, only: :create
     resources :events, only: :create
+    resources :calendar_connections, only: :create
+    resources :documents, only: :create
+    resources :reminders, only: :create
     resources :automation_rules, only: :create
     resources :tasks, only: :create
+  end
+  resources :calendar_connections, only: [] do
+    get :google_callback, on: :collection
+    get :select_google_calendar, on: :member
+    post :update_google_calendar, on: :member
+    post :authorize_google, on: :member
+    post :sync, on: :member
   end
   resources :automation_rules, only: [] do
     post :run_now, on: :member

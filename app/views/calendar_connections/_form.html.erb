@@ -1,0 +1,59 @@
+<%= form_with(model: calendar_connection, url: family_calendar_connections_path(family), class: "space-y-5") do |form| %>
+  <% if calendar_connection.errors.any? %>
+    <div class="error-box">
+      <h2 class="text-base font-semibold"><%= pluralize(calendar_connection.errors.count, "error") %> blocked this calendar connection:</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-6">
+        <% calendar_connection.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :provider, "Провайдер", class: "form-label" %>
+      <%= form.select :provider, options_for_select(CalendarConnection::PROVIDERS.map { |value| [value.humanize, value] }, calendar_connection.provider), {}, class: "form-select" %>
+    </div>
+    <div>
+      <%= form.label :display_name, "Назва підключення", class: "form-label" %>
+      <%= form.text_field :display_name, class: "form-input", placeholder: "School calendar, Work shared calendar" %>
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :remote_calendar_id, "Remote calendar ID", class: "form-label" %>
+      <%= form.text_field :remote_calendar_id, class: "form-input", placeholder: "Необов’язково. Для Google краще вибрати через API після авторизації." %>
+    </div>
+    <div>
+      <%= label_tag "calendar_connection_provider_timezone", "Provider timezone", class: "form-label" %>
+      <%= text_field_tag "calendar_connection[provider_timezone]", calendar_connection.settings["provider_timezone"], class: "form-input", placeholder: "Europe/Berlin" %>
+    </div>
+  </div>
+
+  <div>
+    <%= label_tag "calendar_connection_public_url", "Public feed URL", class: "form-label" %>
+    <%= text_field_tag "calendar_connection[public_url]", calendar_connection.settings["public_url"], class: "form-input", placeholder: "Optional ICS/JSON feed URL for future sync adapters" %>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :access_token, "Access token", class: "form-label" %>
+      <%= form.password_field :access_token, class: "form-input", placeholder: "Encrypted" %>
+    </div>
+    <div>
+      <%= form.label :refresh_token, "Refresh token", class: "form-label" %>
+      <%= form.password_field :refresh_token, class: "form-input", placeholder: "Encrypted" %>
+    </div>
+  </div>
+
+  <label class="flex items-center gap-3 text-sm text-[var(--ink-soft)]">
+    <%= form.check_box :active, class: "form-checkbox" %>
+    <span>Підключення активне</span>
+  </label>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit "Додати підключення", class: "cta-primary cursor-pointer" %>
+  </div>
+<% end %>

@@ -35,7 +35,8 @@ class AutomationRulesController < ApplicationController
       :message_body, :event_type, :summary, :details, :importance, :knowledge_key,
       :knowledge_value, :confidence, :task_title, :task_description, :task_priority,
       :task_status, :task_due_in_days, :task_assigned_to, :calendar_title,
-      :calendar_location, :calendar_source, :calendar_start_in_days, :calendar_duration_hours
+      :calendar_location, :calendar_source, :calendar_start_in_days, :calendar_duration_hours,
+      :reminder_title, :reminder_channel, :reminder_trigger_in_days
     ])).attributes
   end
 
@@ -51,12 +52,18 @@ class AutomationRulesController < ApplicationController
     @life_log_form = @family.life_logs.new(happened_at: Time.current, importance: 0.7, event_type: "routine")
     @family_knowledge_items = @family.family_knowledge.priority_first.limit(8)
     @family_knowledge_form = @family.family_knowledge.new(confidence: 0.8, source: "manual")
+    @documents = @family.documents.recent_first.limit(10)
+    @document_form = @family.documents.new
     @events = @family.events.upcoming_first.limit(10)
     @event_form = @family.events.new(
       start_time: Time.current.change(min: 0) + 1.hour,
       end_time: Time.current.change(min: 0) + 2.hours,
       source: "manual"
     )
+    @calendar_connections = @family.calendar_connections.active_first.limit(10)
+    @calendar_connection_form = @family.calendar_connections.new(provider: "google_calendar", active: true)
+    @reminders = @family.reminders.upcoming_first.limit(10)
+    @reminder_form = @family.reminders.new(trigger_at: Time.current.change(min: 0) + 1.hour, channel: "app", status: "pending")
     @tasks = @family.tasks.open_first.limit(10)
     @task_form = @family.tasks.new(status: "pending", priority: 3)
     @automation_rules = @family.automation_rules.active_first.limit(8)

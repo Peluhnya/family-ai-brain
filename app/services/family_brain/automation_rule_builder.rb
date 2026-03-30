@@ -90,6 +90,20 @@ module FamilyBrain
           action_type: "create_event",
           action_config: event_action_config
         }
+      when "daily_reminder"
+        {
+          trigger_type: "schedule_daily",
+          trigger_config: { "time" => @params[:time_of_day].presence || "09:00" },
+          action_type: "create_reminder",
+          action_config: reminder_action_config
+        }
+      when "chat_keyword_reminder"
+        {
+          trigger_type: "chat_keyword",
+          trigger_config: { "keyword" => @params[:keyword].to_s.strip.downcase },
+          action_type: "create_reminder",
+          action_config: reminder_action_config
+        }
       else
         {
           trigger_type: "schedule_daily",
@@ -132,6 +146,14 @@ module FamilyBrain
         "source" => @params[:calendar_source].presence || "automation_rule",
         "start_in_days" => normalize_int(@params[:calendar_start_in_days], default: 0, min: 0, max: 365),
         "duration_hours" => normalize_int(@params[:calendar_duration_hours], default: 1, min: 1, max: 24)
+      }
+    end
+
+    def reminder_action_config
+      {
+        "title" => @params[:reminder_title].presence || "Family reminder",
+        "channel" => @params[:reminder_channel].presence || "app",
+        "trigger_in_days" => normalize_int(@params[:reminder_trigger_in_days], default: 0, min: 0, max: 365)
       }
     end
   end

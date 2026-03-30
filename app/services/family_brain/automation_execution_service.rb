@@ -52,6 +52,13 @@ module FamilyBrain
           start_time: start_time,
           end_time: start_time + normalize_event_duration(@rule.action_config["duration_hours"]).hours
         )
+      when "create_reminder"
+        @family.reminders.create!(
+          title: interpolate(@rule.action_config["title"]),
+          trigger_at: resolve_reminder_trigger_at,
+          channel: normalize_reminder_channel(@rule.action_config["channel"]),
+          status: "pending"
+        )
       else
         raise "Unsupported automation action: #{@rule.action_type}"
       end
@@ -102,6 +109,17 @@ module FamilyBrain
       return 1 if hours <= 0
 
       hours.clamp(1, 24)
+    end
+
+    def resolve_reminder_trigger_at
+      days = @rule.action_config["trigger_in_days"].to_i
+      days = 0 if days.negative?
+      (days.days.from_now).change(min: 0)
+    end
+
+    def normalize_reminder_channel(channel)
+      channel = channel.to_s
+      Reminder::CHANNELS.include?(channel) ? channel : "app"
     end
   end
 end

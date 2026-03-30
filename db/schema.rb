@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_30_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_30_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -61,6 +61,38 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_120000) do
     t.index ["family_id"], name: "index_automation_rules_on_family_id"
   end
 
+  create_table "calendar_connections", force: :cascade do |t|
+    t.text "access_token"
+    t.boolean "active", default: true, null: false
+    t.string "connection_fingerprint"
+    t.datetime "created_at", null: false
+    t.string "display_name"
+    t.bigint "family_id", null: false
+    t.text "last_error"
+    t.datetime "last_synced_at"
+    t.string "provider", null: false
+    t.text "refresh_token"
+    t.string "remote_calendar_id"
+    t.string "remote_calendar_key"
+    t.jsonb "settings", default: {}, null: false
+    t.text "sync_cursor"
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "connection_fingerprint"], name: "index_calendar_connections_on_family_and_fingerprint", unique: true, where: "(connection_fingerprint IS NOT NULL)"
+    t.index ["family_id"], name: "index_calendar_connections_on_family_id"
+    t.index ["provider"], name: "index_calendar_connections_on_provider"
+  end
+
+  create_table "documents", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.vector "embedding", limit: 1536
+    t.bigint "family_id", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_documents_on_created_at"
+    t.index ["family_id"], name: "index_documents_on_family_id"
+  end
+
   create_table "events", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "end_time"
@@ -68,12 +100,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_120000) do
     t.bigint "family_id", null: false
     t.string "location"
     t.string "source"
+    t.string "source_key"
     t.datetime "start_time", null: false
+    t.string "sync_fingerprint"
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.index ["external_id"], name: "index_events_on_external_id"
+    t.index ["family_id", "sync_fingerprint"], name: "index_events_on_family_and_sync_fingerprint", unique: true, where: "(sync_fingerprint IS NOT NULL)"
     t.index ["family_id"], name: "index_events_on_family_id"
     t.index ["source"], name: "index_events_on_source"
+    t.index ["source_key"], name: "index_events_on_source_key"
     t.index ["start_time"], name: "index_events_on_start_time"
   end
 
@@ -137,6 +173,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_120000) do
     t.index ["user_id"], name: "index_member_users_on_user_id"
   end
 
+  create_table "reminders", force: :cascade do |t|
+    t.string "channel", default: "app", null: false
+    t.datetime "created_at", null: false
+    t.bigint "family_id", null: false
+    t.string "status", default: "pending", null: false
+    t.string "title", null: false
+    t.datetime "trigger_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["channel"], name: "index_reminders_on_channel"
+    t.index ["family_id"], name: "index_reminders_on_family_id"
+    t.index ["status"], name: "index_reminders_on_status"
+    t.index ["trigger_at"], name: "index_reminders_on_trigger_at"
+  end
+
   create_table "tasks", force: :cascade do |t|
     t.bigint "assigned_to"
     t.datetime "created_at", null: false
@@ -178,6 +228,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_120000) do
   add_foreign_key "ai_interactions", "families"
   add_foreign_key "ai_interactions", "users"
   add_foreign_key "automation_rules", "families"
+  add_foreign_key "calendar_connections", "families"
+  add_foreign_key "documents", "families"
   add_foreign_key "events", "families"
   add_foreign_key "families", "accounts"
   add_foreign_key "family_knowledge", "families"
@@ -185,6 +237,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_120000) do
   add_foreign_key "life_logs", "families"
   add_foreign_key "member_users", "family_members"
   add_foreign_key "member_users", "users"
+  add_foreign_key "reminders", "families"
   add_foreign_key "tasks", "families"
   add_foreign_key "tasks", "family_members", column: "assigned_to"
 end

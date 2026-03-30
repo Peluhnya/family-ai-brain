@@ -6,6 +6,9 @@ class Family < ApplicationRecord
   has_many :family_knowledge, dependent: :destroy
   has_many :automation_rules, dependent: :destroy
   has_many :events, dependent: :destroy
+  has_many :calendar_connections, dependent: :destroy
+  has_many :documents, dependent: :destroy
+  has_many :reminders, dependent: :destroy
   has_many :tasks, dependent: :destroy
   has_many :member_users, through: :family_members
   has_many :users, through: :member_users

@@ -21,7 +21,7 @@
     <p class="mt-2 text-xs text-[var(--muted)]">Шаблон визначає що спрацьовує і яку дію Family Brain виконує.</p>
   </div>
 
-  <div class="form-grid" data-rule-builder-target="section" data-templates="daily_ai_note weekly_ai_note monthly_life_log daily_task daily_event">
+  <div class="form-grid" data-rule-builder-target="section" data-templates="daily_ai_note weekly_ai_note monthly_life_log daily_task daily_event daily_reminder">
     <div>
       <%= label_tag "automation_rule_time_of_day", "Час", class: "form-label" %>
       <%= text_field_tag "automation_rule[time_of_day]", "09:00", class: "form-input", placeholder: "09:00" %>
@@ -37,12 +37,12 @@
     <%= number_field_tag "automation_rule[day_of_month]", 1, min: 1, max: 31, class: "form-input" %>
   </div>
 
-  <div class="hidden" data-rule-builder-target="section" data-templates="chat_keyword_knowledge chat_keyword_task chat_keyword_event">
+  <div class="hidden" data-rule-builder-target="section" data-templates="chat_keyword_knowledge chat_keyword_task chat_keyword_event chat_keyword_reminder">
     <%= label_tag "automation_rule_keyword", "Ключове слово", class: "form-label" %>
     <%= text_field_tag "automation_rule[keyword]", nil, class: "form-input", placeholder: "allergy, school, invoice" %>
   </div>
 
-  <div class="form-grid hidden" data-rule-builder-target="section" data-templates="monthly_life_log chat_keyword_knowledge daily_task chat_keyword_task daily_event chat_keyword_event">
+  <div class="form-grid hidden" data-rule-builder-target="section" data-templates="monthly_life_log chat_keyword_knowledge daily_task chat_keyword_task daily_event chat_keyword_event daily_reminder chat_keyword_reminder">
     <div>
       <%= label_tag "automation_rule_template_hint", "Шаблон", class: "form-label" %>
       <input class="form-input" value="Додаткові поля цього шаблону показані нижче" disabled>
@@ -115,6 +115,22 @@
   <div class="hidden" data-rule-builder-target="section" data-templates="daily_event chat_keyword_event">
     <%= label_tag "automation_rule_calendar_source", "Source", class: "form-label" %>
     <%= text_field_tag "automation_rule[calendar_source]", "automation_rule", class: "form-input", placeholder: "automation_rule, school_sync, manual" %>
+  </div>
+
+  <div class="form-grid hidden" data-rule-builder-target="section" data-templates="daily_reminder chat_keyword_reminder">
+    <div>
+      <%= label_tag "automation_rule_reminder_title", "Reminder title", class: "form-label" %>
+      <%= text_field_tag "automation_rule[reminder_title]", nil, class: "form-input", placeholder: "Нагадати про оплату гуртка" %>
+    </div>
+    <div>
+      <%= label_tag "automation_rule_reminder_channel", "Reminder channel", class: "form-label" %>
+      <%= select_tag "automation_rule[reminder_channel]", options_for_select(Reminder::CHANNELS.map { |value| [value.humanize, value] }, "app"), class: "form-select" %>
+    </div>
+  </div>
+
+  <div class="hidden" data-rule-builder-target="section" data-templates="daily_reminder chat_keyword_reminder">
+    <%= label_tag "automation_rule_reminder_trigger_in_days", "Trigger in days", class: "form-label" %>
+    <%= number_field_tag "automation_rule[reminder_trigger_in_days]", 0, min: 0, max: 365, class: "form-input" %>
   </div>
 
   <div class="form-grid hidden" data-rule-builder-target="section" data-templates="monthly_life_log">

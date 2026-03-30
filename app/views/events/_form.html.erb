@@ -33,7 +33,7 @@
     </div>
     <div>
       <%= form.label :source, "Джерело", class: "form-label" %>
-      <%= form.text_field :source, class: "form-input", placeholder: "manual, google_calendar, school_sync" %>
+      <%= form.select :source, options_for_select(Event::SOURCES.map { |value| [value.humanize, value] }, event.source.presence || "manual"), {}, class: "form-select" %>
     </div>
   </div>
 

@@ -7,7 +7,9 @@ class AutomationRule < ApplicationRecord
     "daily_task" => "Щоденна задача",
     "chat_keyword_task" => "Ключове слово -> задача",
     "daily_event" => "Щоденна подія",
-    "chat_keyword_event" => "Ключове слово -> подія"
+    "chat_keyword_event" => "Ключове слово -> подія",
+    "daily_reminder" => "Щоденне нагадування",
+    "chat_keyword_reminder" => "Ключове слово -> нагадування"
   }.freeze
 
   belongs_to :family

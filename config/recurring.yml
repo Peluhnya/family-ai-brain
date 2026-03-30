@@ -14,10 +14,18 @@ development:
     class: RunDueAutomationRulesJob
     queue: default
     schedule: every minute
+  run_due_reminders:
+    class: RunDueRemindersJob
+    queue: default
+    schedule: every minute
 
 production:
   run_due_automation_rules:
     class: RunDueAutomationRulesJob
+    queue: default
+    schedule: every minute
+  run_due_reminders:
+    class: RunDueRemindersJob
     queue: default
     schedule: every minute
 

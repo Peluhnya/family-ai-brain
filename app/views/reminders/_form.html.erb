@@ -1,0 +1,37 @@
+<%= form_with(model: reminder, url: family_reminders_path(family), class: "space-y-5") do |form| %>
+  <% if reminder.errors.any? %>
+    <div class="error-box">
+      <h2 class="text-base font-semibold"><%= pluralize(reminder.errors.count, "error") %> blocked this reminder:</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-6">
+        <% reminder.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :title, "Назва нагадування", class: "form-label" %>
+    <%= form.text_field :title, class: "form-input", placeholder: "Оплатити рахунок, купити подарунок, забрати дитину" %>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :trigger_at, "Час нагадування", class: "form-label" %>
+      <%= form.datetime_local_field :trigger_at, class: "form-input" %>
+    </div>
+    <div>
+      <%= form.label :channel, "Канал", class: "form-label" %>
+      <%= form.select :channel, options_for_select(Reminder::CHANNELS.map { |value| [value.humanize, value] }, reminder.channel.presence || "app"), {}, class: "form-select" %>
+    </div>
+  </div>
+
+  <div>
+    <%= form.label :status, "Статус", class: "form-label" %>
+    <%= form.select :status, options_for_select(Reminder::STATUSES.map { |value| [value.humanize, value] }, reminder.status.presence || "pending"), {}, class: "form-select" %>
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit "Додати reminder", class: "cta-primary cursor-pointer" %>
+  </div>
+<% end %>

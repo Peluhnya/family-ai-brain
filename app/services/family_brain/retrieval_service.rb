@@ -2,6 +2,7 @@ module FamilyBrain
   class RetrievalService
     KNOWLEDGE_LIMIT = 8
     LIFE_LOG_LIMIT = 6
+    DOCUMENT_LIMIT = 6
 
     def initialize(family:, query:)
       @family = family
@@ -34,6 +35,19 @@ module FamilyBrain
       fallback_life_logs
     end
 
+    def relevant_documents
+      return fallback_documents if @query.blank?
+
+      query_embedding = FamilyBrain::EmbeddingService.embed(@query, account: @family.account)
+      return fallback_documents if query_embedding.blank?
+
+      @family.documents.where.not(embedding: nil)
+        .nearest_neighbors(:embedding, query_embedding, distance: :cosine)
+        .limit(DOCUMENT_LIMIT)
+    rescue StandardError
+      fallback_documents
+    end
+
     private
 
     def fallback_knowledge
@@ -42,6 +56,10 @@ module FamilyBrain
 
     def fallback_life_logs
       @family.life_logs.priority_first.limit(LIFE_LOG_LIMIT)
+    end
+
+    def fallback_documents
+      @family.documents.recent_first.limit(DOCUMENT_LIMIT)
     end
   end
 end

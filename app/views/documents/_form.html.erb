@@ -1,0 +1,26 @@
+<%= form_with(model: document, url: family_documents_path(family), class: "space-y-5") do |form| %>
+  <% if document.errors.any? %>
+    <div class="error-box">
+      <h2 class="text-base font-semibold"><%= pluralize(document.errors.count, "error") %> blocked this document:</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-6">
+        <% document.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :title, "Назва документа", class: "form-label" %>
+    <%= form.text_field :title, class: "form-input", placeholder: "School rules, medical notes, family agreements" %>
+  </div>
+
+  <div>
+    <%= form.label :content, "Вміст", class: "form-label" %>
+    <%= form.text_area :content, rows: 8, class: "form-input", placeholder: "Текст документа для RAG і контекстного пошуку..." %>
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit "Додати документ", class: "cta-primary cursor-pointer" %>
+  </div>
+<% end %>

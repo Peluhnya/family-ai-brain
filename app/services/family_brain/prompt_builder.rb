@@ -3,7 +3,9 @@ module FamilyBrain
     SHORT_TERM_LIMIT = 16
     LIFE_LOG_LIMIT = 6
     KNOWLEDGE_LIMIT = 8
+    DOCUMENT_LIMIT = 6
     EVENT_LIMIT = 8
+    REMINDER_LIMIT = 8
     TASK_LIMIT = 8
 
     def initialize(family:, current_message:)
@@ -26,10 +28,12 @@ module FamilyBrain
         1. short_term.ai_interactions
         2. episodic.life_logs
         3. semantic.family_knowledge
-        4. calendar.events
-        5. procedural.automation_rules
-        6. workspace.tasks
-        7. family_members
+        4. rag.documents
+        5. calendar.events
+        6. notifications.reminders
+        7. procedural.automation_rules
+        8. workspace.tasks
+        9. family_members
 
         ACCOUNT CONTEXT
         #{account_context_block}
@@ -43,8 +47,14 @@ module FamilyBrain
         SEMANTIC MEMORY: FAMILY KNOWLEDGE
         #{family_knowledge_block(retrieval.relevant_knowledge)}
 
+        RAG DOCUMENTS
+        #{documents_block(retrieval.relevant_documents)}
+
         CALENDAR EVENTS
         #{events_block}
+
+        ACTIVE REMINDERS
+        #{reminders_block}
 
         PROCEDURAL MEMORY: AUTOMATION RULES
         #{automation_rules_block}
@@ -56,7 +66,9 @@ module FamilyBrain
         - Use short-term memory for immediate conversation continuity.
         - Use life_logs as episodic family memory about real events and routines.
         - Use family_knowledge as stable facts and preferences about the family.
+        - Use documents as long-form RAG context, policies, notes, and reference material.
         - Use events as the calendar layer for upcoming schedule, timing, and locations.
+        - Use reminders as lightweight notification intents for things that must not be forgotten.
         - Use automation_rules as operational rules for what to do and when to do it.
         - Use tasks as the current execution layer: what should be done, by whom, and by when.
         - If information is absent, state that clearly instead of inventing it.
@@ -126,6 +138,17 @@ module FamilyBrain
       end.join("\n")
     end
 
+    def documents_block(documents)
+      return "- no documents recorded yet" if documents.empty?
+
+      documents.map do |document|
+        [
+          "- title: #{document.title}",
+          "  content: #{truncate_text(document.content, 900)}"
+        ].join("\n")
+      end.join("\n")
+    end
+
     def automation_rules_block
       rules = @family.automation_rules.active_first.limit(8)
       return "- no automation rules recorded yet" if rules.empty?
@@ -157,6 +180,20 @@ module FamilyBrain
       end.join("\n")
     end
 
+    def reminders_block
+      reminders = @family.reminders.upcoming_first.limit(REMINDER_LIMIT)
+      return "- no reminders recorded yet" if reminders.empty?
+
+      reminders.map do |reminder|
+        [
+          "- title: #{reminder.title}",
+          "  trigger_at: #{reminder.trigger_at&.strftime('%Y-%m-%d %H:%M') || 'unknown'}",
+          "  channel: #{reminder.channel}",
+          "  status: #{reminder.status}"
+        ].join("\n")
+      end.join("\n")
+    end
+
     def tasks_block
       tasks = @family.tasks.open_first.limit(TASK_LIMIT)
       return "- no tasks recorded yet" if tasks.empty?
@@ -171,6 +208,13 @@ module FamilyBrain
           "  due_at: #{task.due_at&.strftime('%Y-%m-%d %H:%M') || 'none'}"
         ].join("\n")
       end.join("\n")
+    end
+
+    def truncate_text(text, limit)
+      value = text.to_s
+      return value if value.length <= limit
+
+      "#{value.first(limit)}..."
     end
   end
 end
