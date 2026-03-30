@@ -114,6 +114,22 @@ class FamilyMembersController < ApplicationController
     @family_member_form = family_member
     @families = @family.account.families.includes(family_members: :member_users)
     @available_users = available_users_for(@family.account)
+    @ai_interactions = @family.ai_interactions.includes(:user).order(:created_at)
+    @ai_interaction = @family.ai_interactions.new
+    @life_logs = @family.life_logs.priority_first.limit(8)
+    @life_log_form = @family.life_logs.new(happened_at: Time.current, importance: 0.7, event_type: "routine")
+    @family_knowledge_items = @family.family_knowledge.priority_first.limit(8)
+    @family_knowledge_form = @family.family_knowledge.new(confidence: 0.8, source: "manual")
+    @events = @family.events.upcoming_first.limit(10)
+    @event_form = @family.events.new(
+      start_time: Time.current.change(min: 0) + 1.hour,
+      end_time: Time.current.change(min: 0) + 2.hours,
+      source: "manual"
+    )
+    @tasks = @family.tasks.open_first.limit(10)
+    @task_form = @family.tasks.new(status: "pending", priority: 3)
+    @automation_rules = @family.automation_rules.active_first.limit(8)
+    @automation_rule_form = @family.automation_rules.new(active: true, template_key: "daily_ai_note")
   end
 
   def prepare_member_form_data

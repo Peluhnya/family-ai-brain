@@ -1,0 +1,42 @@
+<%= form_with(model: life_log, url: family_life_logs_path(family), class: "space-y-5") do |form| %>
+  <% if life_log.errors.any? %>
+    <div class="error-box">
+      <h2 class="text-base font-semibold"><%= pluralize(life_log.errors.count, "error") %> blocked this life log:</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-6">
+        <% life_log.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :event_type, "Тип події", class: "form-label" %>
+    <%= form.text_field :event_type, class: "form-input", placeholder: "routine, health, school, finance, trip" %>
+  </div>
+
+  <div>
+    <%= form.label :summary, "Короткий summary", class: "form-label" %>
+    <%= form.text_area :summary, rows: 3, class: "form-input", placeholder: "Наприклад: Софія ходить у садочок о 8:30, а вівторок і четвер має танці." %>
+  </div>
+
+  <div>
+    <%= form.label :raw_text, "Raw text / деталі", class: "form-label" %>
+    <%= form.text_area :raw_text, rows: 4, class: "form-input", placeholder: "Додатковий опис події, контекст, деталі для майбутніх відповідей AI." %>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :importance, "Importance 0.0 - 1.0", class: "form-label" %>
+      <%= form.number_field :importance, step: 0.1, min: 0, max: 1, class: "form-input" %>
+    </div>
+    <div>
+      <%= form.label :happened_at, "Коли відбулося", class: "form-label" %>
+      <%= form.datetime_local_field :happened_at, value: life_log.happened_at&.strftime("%Y-%m-%dT%H:%M"), class: "form-input" %>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit "Додати life log", class: "cta-primary cursor-pointer" %>
+  </div>
+<% end %>

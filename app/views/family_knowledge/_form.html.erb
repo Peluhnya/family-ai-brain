@@ -1,0 +1,37 @@
+<%= form_with(model: family_knowledge, url: family_family_knowledge_index_path(family), class: "space-y-5") do |form| %>
+  <% if family_knowledge.errors.any? %>
+    <div class="error-box">
+      <h2 class="text-base font-semibold"><%= pluralize(family_knowledge.errors.count, "error") %> blocked this knowledge item:</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-6">
+        <% family_knowledge.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :key, "Key", class: "form-label" %>
+    <%= form.text_field :key, class: "form-input", placeholder: "favorite_food, school_start_time, allergy, bedtime" %>
+  </div>
+
+  <div>
+    <%= form.label :value, "Value", class: "form-label" %>
+    <%= form.text_area :value, rows: 3, class: "form-input", placeholder: "Наприклад: Меланія любить піцу." %>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :source, "Source", class: "form-label" %>
+      <%= form.text_field :source, class: "form-input", placeholder: "manual, conversation, imported" %>
+    </div>
+    <div>
+      <%= form.label :confidence, "Confidence 0.0 - 1.0", class: "form-label" %>
+      <%= form.number_field :confidence, step: 0.1, min: 0, max: 1, class: "form-input" %>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit "Додати knowledge", class: "cta-primary cursor-pointer" %>
+  </div>
+<% end %>

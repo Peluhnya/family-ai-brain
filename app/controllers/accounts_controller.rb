@@ -1,6 +1,6 @@
 class AccountsController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_account, only: %i[show edit update destroy]
+  before_action :set_account, only: %i[show edit update destroy test_ai_connection]
 
   def index
     @accounts = current_user.accounts.includes(families: { family_members: :member_users }).order(updated_at: :desc)
@@ -12,7 +12,7 @@ class AccountsController < ApplicationController
   end
 
   def new
-    @account = current_user.accounts.new(active: true, email: current_user.email)
+    @account = current_user.accounts.new(active: true, email: current_user.email, ai_access_mode: "app_default")
   end
 
   def edit; end
@@ -52,6 +52,16 @@ class AccountsController < ApplicationController
     end
   end
 
+  def test_ai_connection
+    result = FamilyBrain::ConnectionTestService.new(account: @account).call
+
+    if result[:ok]
+      redirect_to account_path(@account), notice: result[:message]
+    else
+      redirect_to account_path(@account), alert: result[:message]
+    end
+  end
+
   private
 
   def set_account
@@ -59,6 +69,12 @@ class AccountsController < ApplicationController
   end
 
   def account_params
-    params.expect(account: %i[name description email active])
+    permitted = params.expect(account: %i[name description email active ai_access_mode ai_provider ai_api_key ai_api_base ai_model])
+
+    if action_name == "update" && permitted[:ai_api_key].blank?
+      permitted.delete(:ai_api_key)
+    end
+
+    permitted
   end
 end

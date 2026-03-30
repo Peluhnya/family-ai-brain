@@ -20,6 +20,7 @@ if primary_key.present? && deterministic_key.present? && key_derivation_salt.pre
   Rails.application.config.active_record.encryption.primary_key = primary_key
   Rails.application.config.active_record.encryption.deterministic_key = deterministic_key
   Rails.application.config.active_record.encryption.key_derivation_salt = key_derivation_salt
+  Rails.application.config.active_record.encryption.support_unencrypted_data = true
 elsif Rails.env.production?
   raise "Active Record encryption keys are not configured for production."
 end

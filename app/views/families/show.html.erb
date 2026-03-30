@@ -1,95 +1,407 @@
-<% content_for :title, "#{@family.name} | Family AI Brain" %>
+<% content_for :title, "#{@family.name} Desk | Family AI Brain" %>
 
 <section class="workspace-shell">
   <div class="workspace-hero">
-    <p class="label-kicker">Family space</p>
+    <p class="label-kicker">Family desk</p>
     <div class="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
       <div class="max-w-3xl">
         <h1 class="font-['Iowan_Old_Style','Palatino_Linotype',serif] text-5xl leading-none font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-6xl">
           <%= @family.name %>
         </h1>
         <p class="mt-5 text-lg leading-8 text-[var(--ink-soft)]">
-          Сім’я всередині акаунта <strong><%= @account.name %></strong>. Тут керуються члени сім’ї, ролі та прив’язки до реальних користувачів.
+          Робочий стіл сім’ї: чат із LLM, пам’ять сім’ї, список задач, члени сім’ї та automations в одному місці.
         </p>
         <div class="meta-row mt-5">
+          <span class="meta-pill"><%= @account.name %></span>
           <span class="meta-pill"><%= @family.timezone.presence || "Timezone not set" %></span>
-          <span class="meta-pill"><%= @family.locale.presence || "Locale not set" %></span>
           <span class="meta-pill"><%= pluralize(@family.family_members.count, "member") %></span>
+          <span class="meta-pill"><%= pluralize(@events.count, "event") %></span>
+          <span class="meta-pill"><%= pluralize(@tasks.count, "task") %></span>
+          <span class="meta-pill"><%= pluralize(@ai_interactions.count, "interaction") %></span>
         </div>
       </div>
 
       <div class="flex flex-wrap gap-3">
         <%= link_to "До акаунта", account_path(@account), class: "cta-secondary" %>
         <%= link_to "Редагувати сім’ю", edit_family_path(@family), class: "cta-secondary" %>
-        <%= button_to "Видалити сім’ю", family_path(@family), method: :delete, class: "cta-primary cursor-pointer bg-rose-600 hover:bg-rose-500", data: { turbo_confirm: "Delete this family?" } %>
       </div>
     </div>
   </div>
 
-  <div class="workspace-grid">
-    <div class="space-y-6">
+  <div class="desk-grid">
+    <div class="chat-shell">
+      <div class="chat-header">
+        <div>
+          <p class="label-kicker">AI conversation</p>
+          <h2 class="entity-title text-3xl">Family Brain Chat</h2>
+        </div>
+        <div class="meta-row">
+          <span class="meta-pill">Short-term memory</span>
+          <span class="meta-pill">Model: <%= ENV.fetch("AI_CHAT_MODEL", "gpt-4o-mini") %></span>
+        </div>
+      </div>
+
+      <div class="chat-body">
+        <% if @ai_interactions.any? %>
+          <% @ai_interactions.each do |interaction| %>
+            <div class="<%= interaction.role == 'user' ? 'chat-row-user' : 'chat-row-assistant' %>">
+              <div class="<%= interaction.role == 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant' %>">
+                <div><%= simple_format(interaction.content) %></div>
+                <p class="chat-meta">
+                  <%= interaction.role %>
+                  <% if interaction.user&.email.present? %>
+                    · <%= interaction.user.email %>
+                  <% end %>
+                  <% if interaction.model.present? %>
+                    · <%= interaction.model %>
+                  <% end %>
+                  <% if interaction.tokens.present? %>
+                    · <%= interaction.tokens %> tokens
+                  <% end %>
+                </p>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="empty-state">
+            Чат ще порожній. Почни з чогось практичного: “Нагадай мені про садочок завтра”, “Що ми знаємо про графік дітей?” або “Склади план побутових задач на тиждень”.
+          </div>
+        <% end %>
+      </div>
+
+      <div class="composer-shell">
+        <%= form_with(model: @ai_interaction, url: family_ai_interactions_path(@family), class: "space-y-4") do |form| %>
+          <div>
+            <%= form.label :content, "Повідомлення для Family Brain", class: "form-label" %>
+            <%= form.text_area :content, rows: 4, class: "form-input", placeholder: "Напиши запит для сімейного AI..." %>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <%= form.submit "Надіслати в чат", class: "cta-primary cursor-pointer" %>
+            <% if ENV["OPENAI_API_KEY"].blank? %>
+              <span class="meta-pill">OPENAI_API_KEY missing: зараз працює fallback reply</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <aside class="desk-column">
+      <div class="data-card">
+        <p class="label-kicker">Memory architecture</p>
+        <h2 class="entity-title text-2xl">Memory layers</h2>
+        <div class="mt-5 space-y-3 text-sm leading-7 text-[var(--ink-soft)]">
+          <p>`ai_interactions` це short-term memory для останніх реплік у діалозі.</p>
+          <p>`life_logs` це episodic memory про реальні сімейні події, графіки й звички.</p>
+          <p>`family_knowledge` це semantic memory для стабільних фактів, правил і вподобань.</p>
+          <p>`automation_rules` це procedural memory для що робити і коли робити.</p>
+          <p>`events` це calendar layer: коли, де і що відбувається в сім’ї.</p>
+          <p>`tasks` це execution layer: хто що має зробити, до якого часу і з яким пріоритетом.</p>
+          <p>Prompt зараз будується формально з account context, family members, life logs, family knowledge, events, tasks і automation rules.</p>
+        </div>
+      </div>
+
+      <div class="data-card">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="label-kicker">Calendar layer</p>
+            <h2 class="entity-title text-2xl">Events</h2>
+          </div>
+          <span class="meta-pill"><%= pluralize(@events.count, "event") %></span>
+        </div>
+
+        <div class="tabs-shell">
+          <input class="tab-switch" type="radio" name="events-tabs" id="events-tab-list" checked>
+          <input class="tab-switch" type="radio" name="events-tabs" id="events-tab-new">
+          <div class="tab-labels">
+            <label class="tab-label" for="events-tab-list">Список</label>
+            <label class="tab-label" for="events-tab-new">Нова</label>
+          </div>
+
+          <div class="tab-panels">
+            <div class="tab-panel" id="events-panel-list">
+              <div class="entity-list">
+                <% if @events.any? %>
+                  <% @events.each do |event| %>
+                    <article class="entity-card">
+                      <p class="label-kicker"><%= event.source.presence || "manual" %></p>
+                      <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= event.title %></h3>
+                      <p class="mt-3 muted-copy">
+                        <%= event.location.presence || "Без локації" %>
+                      </p>
+                      <div class="meta-row mt-4">
+                        <span class="meta-pill"><%= l(event.start_time, format: :short) %></span>
+                        <span class="meta-pill"><%= event.end_time.present? ? l(event.end_time, format: :short) : "open end" %></span>
+                        <% if event.external_id.present? %>
+                          <span class="meta-pill">synced</span>
+                        <% end %>
+                      </div>
+                    </article>
+                  <% end %>
+                <% else %>
+                  <div class="empty-state">
+                    Тут буде календар сім’ї: школа, лікарі, дні народження, зустрічі, поїздки і recurring події.
+                  </div>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="tab-panel" id="events-panel-new">
+              <%= render "events/form", family: @family, event: @event_form %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="data-card">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="label-kicker">Execution layer</p>
+            <h2 class="entity-title text-2xl">Tasks</h2>
+          </div>
+          <span class="meta-pill"><%= pluralize(@tasks.count, "task") %></span>
+        </div>
+
+        <div class="tabs-shell">
+          <input class="tab-switch" type="radio" name="tasks-tabs" id="tasks-tab-list" checked>
+          <input class="tab-switch" type="radio" name="tasks-tabs" id="tasks-tab-new">
+          <div class="tab-labels">
+            <label class="tab-label" for="tasks-tab-list">Список</label>
+            <label class="tab-label" for="tasks-tab-new">Нова</label>
+          </div>
+
+          <div class="tab-panels">
+            <div class="tab-panel" id="tasks-panel-list">
+              <div class="entity-list">
+                <% if @tasks.any? %>
+                  <% @tasks.each do |task| %>
+                    <article class="entity-card">
+                      <p class="label-kicker"><%= task.status.humanize %></p>
+                      <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= task.title %></h3>
+                      <p class="mt-3 muted-copy"><%= task.description.presence || "Без додаткового опису." %></p>
+                      <div class="meta-row mt-4">
+                        <span class="meta-pill">priority: <%= task.priority %>/5</span>
+                        <span class="meta-pill">assignee: <%= task.assignee&.name.presence || "unassigned" %></span>
+                        <span class="meta-pill"><%= task.due_at.present? ? l(task.due_at, format: :short) : "no deadline" %></span>
+                      </div>
+                    </article>
+                  <% end %>
+                <% else %>
+                  <div class="empty-state">
+                    Тут будуть усі активні задачі сім’ї: побут, школа, фінанси, покупки, дедлайни та follow-ups.
+                  </div>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="tab-panel" id="tasks-panel-new">
+              <%= render "tasks/form", family: @family, task: @task_form %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="data-card">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="label-kicker">Procedural memory</p>
+            <h2 class="entity-title text-2xl">Automation rules</h2>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <span class="meta-pill"><%= pluralize(@automation_rules.count, "rule") %></span>
+            <%= button_to "Run due rules", run_automation_rules_family_path(@family), method: :post, class: "cta-secondary cursor-pointer" %>
+          </div>
+        </div>
+
+        <div class="tabs-shell">
+          <input class="tab-switch" type="radio" name="rules-tabs" id="rules-tab-list" checked>
+          <input class="tab-switch" type="radio" name="rules-tabs" id="rules-tab-new">
+          <div class="tab-labels">
+            <label class="tab-label" for="rules-tab-list">Список</label>
+            <label class="tab-label" for="rules-tab-new">Новий</label>
+          </div>
+
+          <div class="tab-panels">
+            <div class="tab-panel" id="rules-panel-list">
+              <div class="entity-list">
+                <% if @automation_rules.any? %>
+                  <% @automation_rules.each do |rule| %>
+                    <article class="entity-card">
+                      <p class="label-kicker"><%= rule.active? ? "active" : "inactive" %></p>
+                      <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= rule.name %></h3>
+                      <div class="meta-row mt-4">
+                        <span class="meta-pill">template: <%= rule.template_label %></span>
+                        <span class="meta-pill">trigger: <%= rule.trigger_type %></span>
+                        <span class="meta-pill">action: <%= rule.action_type %></span>
+                        <% if rule.last_executed_at.present? %>
+                          <span class="meta-pill">last run: <%= l(rule.last_executed_at, format: :short) %></span>
+                        <% end %>
+                      </div>
+                      <div class="mt-4 space-y-3 text-sm leading-7 text-[var(--ink-soft)]">
+                        <p><strong>Trigger config:</strong> <%= rule.trigger_config.to_json %></p>
+                        <p><strong>Action config:</strong> <%= rule.action_config.to_json %></p>
+                      </div>
+                      <div class="mt-4 flex flex-wrap gap-3">
+                        <%= button_to "Run now", run_now_automation_rule_path(rule), method: :post, class: "cta-secondary cursor-pointer" %>
+                      </div>
+                    </article>
+                  <% end %>
+                <% else %>
+                  <div class="empty-state">
+                    Тут будуть зберігатись procedural rules: коли спрацьовує тригер і яку дію Family Brain має виконати.
+                  </div>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="tab-panel" id="rules-panel-new">
+              <%= render "automation_rules/form", family: @family, automation_rule: @automation_rule_form %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="data-card">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="label-kicker">Semantic memory</p>
+            <h2 class="entity-title text-2xl">Family knowledge</h2>
+          </div>
+          <span class="meta-pill"><%= pluralize(@family_knowledge_items.count, "fact") %></span>
+        </div>
+
+        <div class="tabs-shell">
+          <input class="tab-switch" type="radio" name="knowledge-tabs" id="knowledge-tab-list" checked>
+          <input class="tab-switch" type="radio" name="knowledge-tabs" id="knowledge-tab-new">
+          <div class="tab-labels">
+            <label class="tab-label" for="knowledge-tab-list">Список</label>
+            <label class="tab-label" for="knowledge-tab-new">Новий</label>
+          </div>
+
+          <div class="tab-panels">
+            <div class="tab-panel" id="knowledge-panel-list">
+              <div class="entity-list">
+                <% if @family_knowledge_items.any? %>
+                  <% @family_knowledge_items.each do |item| %>
+                    <article class="entity-card">
+                      <p class="label-kicker"><%= item.key %></p>
+                      <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= item.value %></h3>
+                      <div class="meta-row mt-4">
+                        <span class="meta-pill">source: <%= item.source.presence || "unknown" %></span>
+                        <span class="meta-pill">confidence: <%= format("%.1f", item.confidence) %></span>
+                      </div>
+                    </article>
+                  <% end %>
+                <% else %>
+                  <div class="empty-state">
+                    Тут будуть зберігатись стабільні факти: вподобання, графіки, звички, умови й ключові сімейні правила.
+                  </div>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="tab-panel" id="knowledge-panel-new">
+              <%= render "family_knowledge/form", family: @family, family_knowledge: @family_knowledge_form %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="data-card">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="label-kicker">Episodic memory</p>
+            <h2 class="entity-title text-2xl">Life logs</h2>
+          </div>
+          <span class="meta-pill"><%= pluralize(@life_logs.count, "log") %></span>
+        </div>
+
+        <div class="tabs-shell">
+          <input class="tab-switch" type="radio" name="logs-tabs" id="logs-tab-list" checked>
+          <input class="tab-switch" type="radio" name="logs-tabs" id="logs-tab-new">
+          <div class="tab-labels">
+            <label class="tab-label" for="logs-tab-list">Список</label>
+            <label class="tab-label" for="logs-tab-new">Новий</label>
+          </div>
+
+          <div class="tab-panels">
+            <div class="tab-panel" id="logs-panel-list">
+              <div class="entity-list">
+                <% if @life_logs.any? %>
+                  <% @life_logs.each do |log| %>
+                    <article class="entity-card">
+                      <p class="label-kicker"><%= log.event_type %></p>
+                      <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= log.summary %></h3>
+                      <p class="mt-3 muted-copy"><%= log.raw_text.presence || "Без додаткових деталей." %></p>
+                      <div class="meta-row mt-4">
+                        <span class="meta-pill">importance: <%= format("%.1f", log.importance) %></span>
+                        <span class="meta-pill"><%= log.happened_at.present? ? l(log.happened_at, format: :short) : "time unknown" %></span>
+                      </div>
+                    </article>
+                  <% end %>
+                <% else %>
+                  <div class="empty-state">
+                    Ще немає life logs. Додай життєві події, сталі рутини або важливі сімейні факти, щоб AI міг використовувати episodic memory.
+                  </div>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="tab-panel" id="logs-panel-new">
+              <%= render "life_logs/form", family: @family, life_log: @life_log_form %>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="data-card">
         <div class="flex items-center justify-between gap-4">
           <div>
             <p class="label-kicker">Members</p>
-            <h2 class="entity-title">Члени сім’ї</h2>
+            <h2 class="entity-title text-2xl">Члени сім’ї</h2>
           </div>
           <span class="meta-pill"><%= pluralize(@family.family_members.count, "member") %></span>
         </div>
 
-        <div class="entity-list mt-6">
-          <% if @family.family_members.any? %>
-            <% @family.family_members.includes(:users).order(:name).each do |member| %>
-              <article class="entity-card">
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div class="space-y-3">
-                    <p class="label-kicker"><%= member.role.presence || "family member" %></p>
-                    <h3 class="font-['Iowan_Old_Style','Palatino_Linotype',serif] text-3xl font-semibold text-[var(--ink)]"><%= member.name %></h3>
-                    <div class="meta-row">
-                      <% if member.birthdate.present? %>
-                        <span class="meta-pill">Born <%= l(member.birthdate) %></span>
-                      <% end %>
-                      <% if member.permissions.present? %>
-                        <% Array(member.permissions).each do |permission| %>
-                          <span class="meta-pill"><%= permission %></span>
+        <div class="tabs-shell">
+          <input class="tab-switch" type="radio" name="members-tabs" id="members-tab-list" checked>
+          <input class="tab-switch" type="radio" name="members-tabs" id="members-tab-new">
+          <div class="tab-labels">
+            <label class="tab-label" for="members-tab-list">Список</label>
+            <label class="tab-label" for="members-tab-new">Новий</label>
+          </div>
+
+          <div class="tab-panels">
+            <div class="tab-panel" id="members-panel-list">
+              <div class="entity-list">
+                <% if @family.family_members.any? %>
+                  <% @family.family_members.includes(:users).order(:name).each do |member| %>
+                    <article class="entity-card">
+                      <p class="label-kicker"><%= member.role.presence || "family member" %></p>
+                      <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= member.name %></h3>
+                      <p class="mt-3 muted-copy">
+                        <% if member.users.any? %>
+                          linked: <%= member.users.map(&:email).join(", ") %>
+                        <% else %>
+                          без linked user
                         <% end %>
-                      <% else %>
-                        <span class="meta-pill">No extra permissions</span>
-                      <% end %>
-                    </div>
-                    <p class="muted-copy">
-                      <% if member.users.any? %>
-                        Linked user:
-                        <%= member.users.map(&:email).join(", ") %>
-                      <% else %>
-                        Цей член сім’ї поки що існує як запис без прив’язаного user.
-                      <% end %>
-                    </p>
+                      </p>
+                      <div class="mt-4 flex flex-wrap gap-3">
+                        <%= link_to "Редагувати", edit_family_member_path(member), class: "cta-secondary" %>
+                      </div>
+                    </article>
+                  <% end %>
+                <% else %>
+                  <div class="empty-state">
+                    Додай членів сім’ї, щоб chat міг бачити реальний сімейний контекст.
                   </div>
-
-                  <div class="flex flex-wrap gap-3">
-                    <%= link_to "Редагувати", edit_family_member_path(member), class: "cta-secondary" %>
-                    <%= button_to "Видалити", family_member_path(member), method: :delete, class: "cta-primary cursor-pointer bg-rose-600 hover:bg-rose-500", data: { turbo_confirm: "Remove this family member?" } %>
-                  </div>
-                </div>
-              </article>
-            <% end %>
-          <% else %>
-            <div class="empty-state">
-              Тут ще немає членів сім’ї. Додай хоча б базові записи, а потім за потреби прив’яжи їх до існуючих user або створи нових.
+                <% end %>
+              </div>
             </div>
-          <% end %>
-        </div>
-      </div>
-    </div>
 
-    <aside class="workspace-sidebar">
-      <div class="form-panel">
-        <p class="label-kicker">Add member</p>
-        <h2 class="entity-title text-2xl">Новий член сім’ї</h2>
-        <p class="mt-3 muted-copy">Спочатку створюється член сім’ї як сутність. Далі його можна лишити без user, прив’язати до наявного користувача або створити нового.</p>
-        <div class="mt-5">
-          <%= render "family_members/form", family: @family, family_member: @family_member_form, available_users: @available_users %>
+            <div class="tab-panel" id="members-panel-new">
+              <%= render "family_members/form", family: @family, family_member: @family_member_form, available_users: @available_users %>
+            </div>
+          </div>
         </div>
       </div>
     </aside>

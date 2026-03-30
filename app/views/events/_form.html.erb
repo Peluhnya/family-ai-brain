@@ -1,0 +1,48 @@
+<%= form_with(model: event, url: family_events_path(family), class: "space-y-5") do |form| %>
+  <% if event.errors.any? %>
+    <div class="error-box">
+      <h2 class="text-base font-semibold"><%= pluralize(event.errors.count, "error") %> blocked this event:</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-6">
+        <% event.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :title, "Назва події", class: "form-label" %>
+    <%= form.text_field :title, class: "form-input", placeholder: "Садочок, день народження, прийом у лікаря, мітинг" %>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :start_time, "Початок", class: "form-label" %>
+      <%= form.datetime_local_field :start_time, class: "form-input" %>
+    </div>
+    <div>
+      <%= form.label :end_time, "Кінець", class: "form-label" %>
+      <%= form.datetime_local_field :end_time, class: "form-input" %>
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <%= form.label :location, "Локація", class: "form-label" %>
+      <%= form.text_field :location, class: "form-input", placeholder: "Berlin, school hall, dentist, office" %>
+    </div>
+    <div>
+      <%= form.label :source, "Джерело", class: "form-label" %>
+      <%= form.text_field :source, class: "form-input", placeholder: "manual, google_calendar, school_sync" %>
+    </div>
+  </div>
+
+  <div>
+    <%= form.label :external_id, "External ID", class: "form-label" %>
+    <%= form.text_field :external_id, class: "form-input", placeholder: "Опційно, для sync з зовнішнім календарем" %>
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit "Додати подію", class: "cta-primary cursor-pointer" %>
+  </div>
+<% end %>

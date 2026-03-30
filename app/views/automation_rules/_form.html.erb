@@ -1,0 +1,165 @@
+<%= form_with(model: automation_rule, url: family_automation_rules_path(family), class: "space-y-5", data: { controller: "rule-builder" }) do |form| %>
+  <% if automation_rule.errors.any? %>
+    <div class="error-box">
+      <h2 class="text-base font-semibold"><%= pluralize(automation_rule.errors.count, "error") %> blocked this automation rule:</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-6">
+        <% automation_rule.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :name, "Назва правила", class: "form-label" %>
+    <%= form.text_field :name, class: "form-input", placeholder: "Monthly bills reminder" %>
+  </div>
+
+  <div>
+    <%= form.label :template_key, "Rule template", class: "form-label" %>
+    <%= form.select :template_key, AutomationRule::TEMPLATES.map { |key, label| [label, key] }, {}, class: "form-select", data: { rule_builder_target: "template", action: "change->rule-builder#update" } %>
+    <p class="mt-2 text-xs text-[var(--muted)]">Шаблон визначає що спрацьовує і яку дію Family Brain виконує.</p>
+  </div>
+
+  <div class="form-grid" data-rule-builder-target="section" data-templates="daily_ai_note weekly_ai_note monthly_life_log daily_task daily_event">
+    <div>
+      <%= label_tag "automation_rule_time_of_day", "Час", class: "form-label" %>
+      <%= text_field_tag "automation_rule[time_of_day]", "09:00", class: "form-input", placeholder: "09:00" %>
+    </div>
+    <div data-rule-builder-target="section" data-templates="weekly_ai_note">
+      <%= label_tag "automation_rule_weekday", "День тижня", class: "form-label" %>
+      <%= select_tag "automation_rule[weekday]", options_for_select(%w[monday tuesday wednesday thursday friday saturday sunday], "monday"), class: "form-select" %>
+    </div>
+  </div>
+
+  <div class="hidden" data-rule-builder-target="section" data-templates="monthly_life_log">
+    <%= label_tag "automation_rule_day_of_month", "День місяця", class: "form-label" %>
+    <%= number_field_tag "automation_rule[day_of_month]", 1, min: 1, max: 31, class: "form-input" %>
+  </div>
+
+  <div class="hidden" data-rule-builder-target="section" data-templates="chat_keyword_knowledge chat_keyword_task chat_keyword_event">
+    <%= label_tag "automation_rule_keyword", "Ключове слово", class: "form-label" %>
+    <%= text_field_tag "automation_rule[keyword]", nil, class: "form-input", placeholder: "allergy, school, invoice" %>
+  </div>
+
+  <div class="form-grid hidden" data-rule-builder-target="section" data-templates="monthly_life_log chat_keyword_knowledge daily_task chat_keyword_task daily_event chat_keyword_event">
+    <div>
+      <%= label_tag "automation_rule_template_hint", "Шаблон", class: "form-label" %>
+      <input class="form-input" value="Додаткові поля цього шаблону показані нижче" disabled>
+    </div>
+    <div>
+      <%= label_tag "automation_rule_activation_hint", "Execution", class: "form-label" %>
+      <input class="form-input" value="Після створення правило можна виконати вручну або через recurring scheduler" disabled>
+    </div>
+  </div>
+
+  <div class="hidden" data-rule-builder-target="section" data-templates="daily_ai_note weekly_ai_note">
+    <%= label_tag "automation_rule_message_body", "AI note / повідомлення", class: "form-label" %>
+    <%= text_area_tag "automation_rule[message_body]", nil, rows: 3, class: "form-input", placeholder: "Нагадай сім’ї перевірити рахунки сьогодні." %>
+  </div>
+
+  <div class="form-grid hidden" data-rule-builder-target="section" data-templates="daily_task chat_keyword_task">
+    <div>
+      <%= label_tag "automation_rule_task_title", "Task title", class: "form-label" %>
+      <%= text_field_tag "automation_rule[task_title]", nil, class: "form-input", placeholder: "Підготувати документи в школу" %>
+    </div>
+    <div>
+      <%= label_tag "automation_rule_task_priority", "Task priority 1-5", class: "form-label" %>
+      <%= number_field_tag "automation_rule[task_priority]", 3, min: 1, max: 5, step: 1, class: "form-input" %>
+    </div>
+  </div>
+
+  <div class="hidden" data-rule-builder-target="section" data-templates="daily_task chat_keyword_task">
+    <%= label_tag "automation_rule_task_description", "Task description", class: "form-label" %>
+    <%= text_area_tag "automation_rule[task_description]", nil, rows: 3, class: "form-input", placeholder: "Що саме потрібно зробити і який контекст зберегти" %>
+  </div>
+
+  <div class="form-grid hidden" data-rule-builder-target="section" data-templates="daily_task chat_keyword_task">
+    <div>
+      <%= label_tag "automation_rule_task_status", "Task status", class: "form-label" %>
+      <%= select_tag "automation_rule[task_status]", options_for_select(Task::STATUSES.map { |value| [value.humanize, value] }, "pending"), class: "form-select" %>
+    </div>
+    <div>
+      <%= label_tag "automation_rule_task_due_in_days", "Due in days", class: "form-label" %>
+      <%= number_field_tag "automation_rule[task_due_in_days]", 0, min: 0, max: 365, class: "form-input" %>
+    </div>
+  </div>
+
+  <div class="hidden" data-rule-builder-target="section" data-templates="daily_task chat_keyword_task">
+    <%= label_tag "automation_rule_task_assigned_to", "Assign to member", class: "form-label" %>
+    <%= select_tag "automation_rule[task_assigned_to]", options_for_select([["Без призначення", ""]] + family.family_members.order(:name).map { |member| [member.name, member.id] }), class: "form-select" %>
+  </div>
+
+  <div class="form-grid hidden" data-rule-builder-target="section" data-templates="daily_event chat_keyword_event">
+    <div>
+      <%= label_tag "automation_rule_calendar_title", "Event title", class: "form-label" %>
+      <%= text_field_tag "automation_rule[calendar_title]", nil, class: "form-input", placeholder: "Зустріч у школі, лікар, сімейна вечеря" %>
+    </div>
+    <div>
+      <%= label_tag "automation_rule_calendar_location", "Location", class: "form-label" %>
+      <%= text_field_tag "automation_rule[calendar_location]", nil, class: "form-input", placeholder: "School, clinic, home, office" %>
+    </div>
+  </div>
+
+  <div class="form-grid hidden" data-rule-builder-target="section" data-templates="daily_event chat_keyword_event">
+    <div>
+      <%= label_tag "automation_rule_calendar_start_in_days", "Start in days", class: "form-label" %>
+      <%= number_field_tag "automation_rule[calendar_start_in_days]", 0, min: 0, max: 365, class: "form-input" %>
+    </div>
+    <div>
+      <%= label_tag "automation_rule_calendar_duration_hours", "Duration hours", class: "form-label" %>
+      <%= number_field_tag "automation_rule[calendar_duration_hours]", 1, min: 1, max: 24, class: "form-input" %>
+    </div>
+  </div>
+
+  <div class="hidden" data-rule-builder-target="section" data-templates="daily_event chat_keyword_event">
+    <%= label_tag "automation_rule_calendar_source", "Source", class: "form-label" %>
+    <%= text_field_tag "automation_rule[calendar_source]", "automation_rule", class: "form-input", placeholder: "automation_rule, school_sync, manual" %>
+  </div>
+
+  <div class="form-grid hidden" data-rule-builder-target="section" data-templates="monthly_life_log">
+    <div>
+      <%= label_tag "automation_rule_event_type", "Life log event type", class: "form-label" %>
+      <%= text_field_tag "automation_rule[event_type]", "routine", class: "form-input", placeholder: "routine, finance, school" %>
+    </div>
+    <div>
+      <%= label_tag "automation_rule_importance", "Importance 0.0 - 1.0", class: "form-label" %>
+      <%= number_field_tag "automation_rule[importance]", 0.7, step: 0.1, min: 0, max: 1, class: "form-input" %>
+    </div>
+  </div>
+
+  <div class="hidden" data-rule-builder-target="section" data-templates="monthly_life_log">
+    <%= label_tag "automation_rule_summary", "Life log summary", class: "form-label" %>
+    <%= text_area_tag "automation_rule[summary]", nil, rows: 3, class: "form-input", placeholder: "Автоматичне щомісячне нагадування про оплату рахунків." %>
+  </div>
+
+  <div class="hidden" data-rule-builder-target="section" data-templates="monthly_life_log">
+    <%= label_tag "automation_rule_details", "Life log details", class: "form-label" %>
+    <%= text_area_tag "automation_rule[details]", nil, rows: 3, class: "form-input", placeholder: "Деталі події для episodic memory." %>
+  </div>
+
+  <div class="form-grid hidden" data-rule-builder-target="section" data-templates="chat_keyword_knowledge">
+    <div>
+      <%= label_tag "automation_rule_knowledge_key", "Knowledge key", class: "form-label" %>
+      <%= text_field_tag "automation_rule[knowledge_key]", nil, class: "form-input", placeholder: "school_start_time" %>
+    </div>
+    <div>
+      <%= label_tag "automation_rule_confidence", "Knowledge confidence", class: "form-label" %>
+      <%= number_field_tag "automation_rule[confidence]", 0.8, step: 0.1, min: 0, max: 1, class: "form-input" %>
+    </div>
+  </div>
+
+  <div class="hidden" data-rule-builder-target="section" data-templates="chat_keyword_knowledge">
+    <%= label_tag "automation_rule_knowledge_value", "Knowledge value", class: "form-label" %>
+    <%= text_area_tag "automation_rule[knowledge_value]", nil, rows: 3, class: "form-input", placeholder: "Садочок починається о 8:30." %>
+  </div>
+
+  <label class="flex items-center gap-3 text-sm text-[var(--ink-soft)]">
+    <%= form.check_box :active, class: "form-checkbox" %>
+    <span>Правило активне</span>
+  </label>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit "Додати automation rule", class: "cta-primary cursor-pointer" %>
+  </div>
+<% end %>

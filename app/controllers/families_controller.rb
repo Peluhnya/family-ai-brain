@@ -1,7 +1,7 @@
 class FamiliesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_account, only: %i[index new create]
-  before_action :set_family, only: %i[show edit update destroy]
+  before_action :set_family, only: %i[show edit update destroy run_automation_rules]
 
   def index
     @families = @account.families.includes(family_members: :member_users).order(:name)
@@ -12,6 +12,25 @@ class FamiliesController < ApplicationController
     @families = @account.families.includes(family_members: :member_users).order(:name)
     @family_member_form = @family.family_members.new
     @available_users = available_users_for(@account)
+    @ai_interactions = @family.ai_interactions.includes(:user).order(:created_at)
+    @ai_interaction = @family.ai_interactions.new
+    @life_logs = @family.life_logs.priority_first.limit(8)
+    @life_log_form = @family.life_logs.new(happened_at: Time.current, importance: 0.7, event_type: "routine")
+    @family_knowledge_items = @family.family_knowledge.priority_first.limit(8)
+    @family_knowledge_form = @family.family_knowledge.new(confidence: 0.8, source: "manual")
+    @events = @family.events.upcoming_first.limit(10)
+    @event_form = @family.events.new(
+      start_time: Time.current.change(min: 0) + 1.hour,
+      end_time: Time.current.change(min: 0) + 2.hours,
+      source: "manual"
+    )
+    @tasks = @family.tasks.open_first.limit(10)
+    @task_form = @family.tasks.new(status: "pending", priority: 3)
+    @automation_rules = @family.automation_rules.active_first.limit(8)
+    @automation_rule_form = @family.automation_rules.new(
+      active: true,
+      template_key: "daily_ai_note"
+    )
   end
 
   def new
@@ -56,6 +75,13 @@ class FamiliesController < ApplicationController
       format.html { redirect_to account_path(account), notice: "Family was successfully destroyed.", status: :see_other }
       format.json { head :no_content }
     end
+  end
+
+  def run_automation_rules
+    due_rules = FamilyBrain::AutomationSchedulerService.new(family: @family).due_rules
+    due_rules.each { |rule| AutomationRuleExecutionJob.perform_later(rule.id) }
+
+    redirect_to family_path(@family), notice: "#{due_rules.size} automation rule(s) queued."
   end
 
   private

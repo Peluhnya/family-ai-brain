@@ -199,4 +199,100 @@ body {
   .empty-state {
     @apply rounded-[1.5rem] border border-dashed border-[var(--line-strong)] bg-white/60 p-6 text-sm leading-7 text-[var(--ink-soft)];
   }
+
+  .desk-grid {
+    @apply grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)];
+  }
+
+  .chat-shell {
+    @apply rounded-[2rem] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(248,242,231,0.88))] shadow-[0_24px_60px_rgba(44,40,35,0.08)];
+  }
+
+  .chat-header {
+    @apply flex items-center justify-between gap-4 border-b border-[var(--line)] px-6 py-5;
+  }
+
+  .chat-body {
+    @apply flex max-h-[42rem] flex-col gap-4 overflow-y-auto px-6 py-6;
+  }
+
+  .chat-row-user {
+    @apply flex justify-end;
+  }
+
+  .chat-row-assistant {
+    @apply flex justify-start;
+  }
+
+  .chat-bubble-user {
+    @apply max-w-[85%] rounded-[1.75rem] rounded-br-md bg-[var(--accent)] px-5 py-4 text-sm leading-7 text-white shadow-[0_18px_35px_rgba(33,74,68,0.22)];
+  }
+
+  .chat-bubble-assistant {
+    @apply max-w-[85%] rounded-[1.75rem] rounded-bl-md border border-[var(--line)] bg-white/90 px-5 py-4 text-sm leading-7 text-[var(--ink)] shadow-sm;
+  }
+
+  .chat-meta {
+    @apply mt-3 text-[11px] uppercase tracking-[0.24em] opacity-65;
+  }
+
+  .composer-shell {
+    @apply border-t border-[var(--line)] px-6 py-5;
+  }
+
+  .desk-column {
+    @apply space-y-6;
+  }
+
+  .tabs-shell {
+    @apply mt-5;
+  }
+
+  .tab-labels {
+    @apply mb-5 flex flex-wrap gap-2;
+  }
+
+  .tab-label {
+    @apply cursor-pointer rounded-full border border-[var(--line)] bg-white/75 px-4 py-2 text-sm font-medium text-[var(--ink-soft)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)];
+  }
+
+  .tab-panel {
+    display: none;
+  }
+
+  .tab-switch {
+    display: none;
+  }
+
+  #members-tab-list:checked ~ .tab-panels #members-panel-list,
+  #members-tab-new:checked ~ .tab-panels #members-panel-new,
+  #events-tab-list:checked ~ .tab-panels #events-panel-list,
+  #events-tab-new:checked ~ .tab-panels #events-panel-new,
+  #tasks-tab-list:checked ~ .tab-panels #tasks-panel-list,
+  #tasks-tab-new:checked ~ .tab-panels #tasks-panel-new,
+  #rules-tab-list:checked ~ .tab-panels #rules-panel-list,
+  #rules-tab-new:checked ~ .tab-panels #rules-panel-new,
+  #logs-tab-list:checked ~ .tab-panels #logs-panel-list,
+  #logs-tab-new:checked ~ .tab-panels #logs-panel-new,
+  #knowledge-tab-list:checked ~ .tab-panels #knowledge-panel-list,
+  #knowledge-tab-new:checked ~ .tab-panels #knowledge-panel-new {
+    display: block;
+  }
+
+  #members-tab-list:checked ~ .tab-labels label[for="members-tab-list"],
+  #members-tab-new:checked ~ .tab-labels label[for="members-tab-new"],
+  #events-tab-list:checked ~ .tab-labels label[for="events-tab-list"],
+  #events-tab-new:checked ~ .tab-labels label[for="events-tab-new"],
+  #tasks-tab-list:checked ~ .tab-labels label[for="tasks-tab-list"],
+  #tasks-tab-new:checked ~ .tab-labels label[for="tasks-tab-new"],
+  #rules-tab-list:checked ~ .tab-labels label[for="rules-tab-list"],
+  #rules-tab-new:checked ~ .tab-labels label[for="rules-tab-new"],
+  #logs-tab-list:checked ~ .tab-labels label[for="logs-tab-list"],
+  #logs-tab-new:checked ~ .tab-labels label[for="logs-tab-new"],
+  #knowledge-tab-list:checked ~ .tab-labels label[for="knowledge-tab-list"],
+  #knowledge-tab-new:checked ~ .tab-labels label[for="knowledge-tab-new"] {
+    border-color: var(--line-strong);
+    background: var(--sand);
+    color: var(--ink);
+  }
 }

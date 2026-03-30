@@ -1,10 +1,21 @@
 Rails.application.routes.draw do
   root "pages#home"
   resources :accounts do
+    post :test_ai_connection, on: :member
     resources :families, only: %i[index new create]
   end
   resources :families, only: %i[show edit update destroy] do
+    post :run_automation_rules, on: :member
     resources :family_members, only: :create
+    resources :ai_interactions, only: :create
+    resources :life_logs, only: :create
+    resources :family_knowledge, only: :create
+    resources :events, only: :create
+    resources :automation_rules, only: :create
+    resources :tasks, only: :create
+  end
+  resources :automation_rules, only: [] do
+    post :run_now, on: :member
   end
   resources :family_members, only: %i[edit update destroy]
   devise_for :users
