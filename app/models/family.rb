@@ -5,6 +5,7 @@ class Family < ApplicationRecord
   has_many :life_logs, dependent: :destroy
   has_many :family_knowledge, dependent: :destroy
   has_many :automation_rules, dependent: :destroy
+  has_many :automation_rule_executions, dependent: :destroy
   has_many :events, dependent: :destroy
   has_many :calendar_connections, dependent: :destroy
   has_many :documents, dependent: :destroy

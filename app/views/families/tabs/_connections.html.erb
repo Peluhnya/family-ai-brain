@@ -11,7 +11,7 @@
     <div class="entity-list mt-6">
       <% if @calendar_connections.any? %>
         <% @calendar_connections.each do |connection| %>
-          <article class="entity-card">
+          <article class="entity-card" id="<%= dom_id(connection) %>">
             <p class="label-kicker"><%= connection.provider %></p>
             <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= connection.display_name.presence || connection.remote_calendar_id %></h3>
             <div class="meta-row mt-4">
@@ -30,6 +30,8 @@
                 <% end %>
               <% end %>
               <%= button_to "Sync now", sync_calendar_connection_path(connection), method: :post, class: "cta-secondary cursor-pointer" %>
+              <%= link_to "Edit", tab_family_path(@family, tab: "connections", edit_calendar_connection_id: connection.id), class: "cta-secondary" %>
+              <%= button_to "Delete", family_calendar_connection_path(@family, connection), method: :delete, class: "cta-secondary cursor-pointer", form: { data: { turbo_confirm: "Delete this calendar connection?" } } %>
             </div>
           </article>
         <% end %>
@@ -43,8 +45,8 @@
 
   <aside class="workspace-sidebar">
     <div class="form-panel">
-      <p class="label-kicker">New connection</p>
-      <h2 class="entity-title text-2xl">Додати календар</h2>
+      <p class="label-kicker"><%= @calendar_connection_form.persisted? ? "Edit connection" : "New connection" %></p>
+      <h2 class="entity-title text-2xl"><%= @calendar_connection_form.persisted? ? "Редагувати календар" : "Додати календар" %></h2>
       <div class="mt-6">
         <%= render "calendar_connections/form", family: @family, calendar_connection: @calendar_connection_form, active_tab: @active_family_tab %>
       </div>

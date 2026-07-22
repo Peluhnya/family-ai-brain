@@ -1,5 +1,6 @@
 class Document < ApplicationRecord
   include FamilyTabCountsBroadcastable
+  include FamilyWorkspaceRefreshBroadcastable
 
   belongs_to :family
 

@@ -21,7 +21,25 @@ class GenerateAiAssistantReplyJob < ApplicationJob
     assistant_message.update!(
       content: result[:content].presence || streamed_content.presence || "Вибач, я не зміг сформувати відповідь.",
       model: result[:model],
-      tokens: result[:tokens]
+      tokens: result[:tokens],
+      input_tokens: result[:input_tokens],
+      output_tokens: result[:output_tokens],
+      system_prompt_tokens: result.dig(:usage_metadata, :estimates, :system_prompt_tokens),
+      system_prompt_chars: result.dig(:usage_metadata, :estimates, :system_prompt_chars),
+      short_term_tokens: result.dig(:usage_metadata, :estimates, :short_term_tokens),
+      short_term_message_count: result.dig(:usage_metadata, :estimates, :short_term_message_count),
+      user_message_tokens: result.dig(:usage_metadata, :estimates, :user_message_tokens),
+      prompt_version: result[:prompt_version],
+      llm_metadata: result[:usage_metadata] || {}
+    )
+
+    Rails.logger.info(
+      "ai_usage account_id=#{family.account_id} family_id=#{family.id} interaction_id=#{assistant_message.id} " \
+      "model=#{result[:model]} input_tokens=#{result[:input_tokens] || 0} output_tokens=#{result[:output_tokens] || 0} " \
+      "system_prompt_tokens=#{result.dig(:usage_metadata, :estimates, :system_prompt_tokens) || 0} " \
+      "short_term_tokens=#{result.dig(:usage_metadata, :estimates, :short_term_tokens) || 0} " \
+      "user_message_tokens=#{result.dig(:usage_metadata, :estimates, :user_message_tokens) || 0} " \
+      "prompt_version=#{result[:prompt_version] || 'none'}"
     )
 
     broadcast_interaction_update(family, assistant_message)

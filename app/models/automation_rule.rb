@@ -1,5 +1,6 @@
 class AutomationRule < ApplicationRecord
   include FamilyTabCountsBroadcastable
+  include FamilyWorkspaceRefreshBroadcastable
   self.family_tab_count_update_fields = %i[active]
 
   TEMPLATES = {
@@ -16,6 +17,7 @@ class AutomationRule < ApplicationRecord
   }.freeze
 
   belongs_to :family
+  has_many :automation_rule_executions, dependent: :destroy
 
   encrypts :name, :trigger_type, :action_type, :template_key
 

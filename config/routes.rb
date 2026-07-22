@@ -9,16 +9,16 @@ Rails.application.routes.draw do
     get ":tab", on: :member, action: :show, as: :tab, constraints: {
       tab: /chat|documents|reminders|connections|events|tasks|automations|knowledge|logs|members/
     }
-    resources :family_members, only: :create
+    resources :family_members, only: %i[create update destroy]
     resources :ai_interactions, only: :create
-    resources :life_logs, only: :create
-    resources :family_knowledge, only: :create
-    resources :events, only: :create
-    resources :calendar_connections, only: :create
-    resources :documents, only: :create
-    resources :reminders, only: :create
-    resources :automation_rules, only: :create
-    resources :tasks, only: :create
+    resources :life_logs, only: %i[create update destroy]
+    resources :family_knowledge, only: %i[create update destroy]
+    resources :events, only: %i[create update destroy]
+    resources :calendar_connections, only: %i[create update destroy]
+    resources :documents, only: %i[create update destroy]
+    resources :reminders, only: %i[create update destroy]
+    resources :automation_rules, only: %i[create update destroy]
+    resources :tasks, only: %i[create update destroy]
   end
   resources :calendar_connections, only: [] do
     get :google_callback, on: :collection
@@ -29,8 +29,8 @@ Rails.application.routes.draw do
   end
   resources :automation_rules, only: [] do
     post :run_now, on: :member
+    patch :toggle_active, on: :member
   end
-  resources :family_members, only: %i[edit update destroy]
   devise_for :users
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

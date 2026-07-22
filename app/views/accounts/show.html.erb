@@ -16,7 +16,7 @@
           <span class="meta-pill"><%= @account.email %></span>
           <span class="meta-pill"><%= pluralize(@families.count, "family") %></span>
           <span class="meta-pill"><%= pluralize(@families.sum { |family| family.family_members.size }, "member") %></span>
-          <span class="meta-pill"><%= @account.personal_ai? ? "Personal AI key" : "App default AI" %></span>
+          <span class="meta-pill"><%= @account.ai_access_mode_label %></span>
         </div>
       </div>
 
@@ -67,6 +67,110 @@
           <% end %>
         </div>
       </div>
+
+      <% if ai_debug_ui_enabled? %>
+        <div class="data-card">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <p class="label-kicker">AI usage</p>
+              <h2 class="entity-title">Токени та prompt-статистика</h2>
+            </div>
+            <% if @ai_usage_summary[:requests_count].positive? %>
+              <span class="meta-pill"><%= pluralize(@ai_usage_summary[:requests_count], "request") %></span>
+            <% end %>
+          </div>
+
+          <% if @ai_usage_summary[:requests_count].positive? %>
+            <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <article class="entity-card">
+                <p class="label-kicker">Total</p>
+                <p class="mt-2 text-3xl font-semibold text-[var(--ink)]"><%= number_with_delimiter(@ai_usage_summary[:total_tokens].to_i) %></p>
+                <p class="mt-2 text-sm text-[var(--ink-soft)]">all tokens across tracked LLM replies</p>
+              </article>
+              <article class="entity-card">
+                <p class="label-kicker">Input</p>
+                <p class="mt-2 text-3xl font-semibold text-[var(--ink)]"><%= number_with_delimiter(@ai_usage_summary[:total_input_tokens].to_i) %></p>
+                <p class="mt-2 text-sm text-[var(--ink-soft)]">avg <%= number_with_delimiter(@ai_usage_summary[:average_input_tokens].to_i) %> per request</p>
+              </article>
+              <article class="entity-card">
+                <p class="label-kicker">Output</p>
+                <p class="mt-2 text-3xl font-semibold text-[var(--ink)]"><%= number_with_delimiter(@ai_usage_summary[:total_output_tokens].to_i) %></p>
+                <p class="mt-2 text-sm text-[var(--ink-soft)]">avg <%= number_with_delimiter(@ai_usage_summary[:average_output_tokens].to_i) %> per request</p>
+              </article>
+              <article class="entity-card">
+                <p class="label-kicker">System prompt est.</p>
+                <p class="mt-2 text-3xl font-semibold text-[var(--ink)]"><%= number_with_delimiter(@ai_usage_summary[:total_system_prompt_tokens].to_i) %></p>
+                <p class="mt-2 text-sm text-[var(--ink-soft)]">
+                  avg <%= number_with_delimiter(@ai_usage_summary[:average_system_prompt_tokens].to_i) %>
+                  · <%= ai_usage_percentage(@ai_usage_summary[:total_system_prompt_tokens], @ai_usage_summary[:total_input_tokens]) %> of input
+                </p>
+              </article>
+            </div>
+
+            <div class="mt-6 grid gap-6 lg:grid-cols-2">
+              <div class="entity-card">
+                <p class="label-kicker">Per request</p>
+                <div class="mt-4 space-y-2 text-sm leading-7 text-[var(--ink-soft)]">
+                  <p>Average short-term history: <strong><%= number_with_delimiter(@ai_usage_summary[:average_short_term_tokens].to_i) %> est. tokens</strong></p>
+                  <p>Average user message: <strong><%= number_with_delimiter(@ai_usage_summary[:average_user_message_tokens].to_i) %> est. tokens</strong></p>
+                  <p>Fallback replies: <strong><%= number_with_delimiter(@ai_usage_summary[:fallback_count].to_i) %></strong></p>
+                </div>
+              </div>
+
+              <div class="entity-card">
+                <p class="label-kicker">By family</p>
+                <div class="mt-4 space-y-3 text-sm leading-7 text-[var(--ink-soft)]">
+                  <% @ai_usage_by_family.each do |entry| %>
+                    <p>
+                      <strong><%= entry[:family].name %></strong>
+                      · <%= number_with_delimiter(entry[:total_tokens]) %> tokens
+                      · <%= pluralize(entry[:requests_count], "request") %>
+                      · avg input <%= number_with_delimiter(entry[:average_input_tokens].to_i) %>
+                      · avg system <%= number_with_delimiter(entry[:average_system_prompt_tokens].to_i) %>
+                    </p>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
+            <div class="entity-list mt-6">
+              <% @recent_ai_requests.each do |interaction| %>
+                <article class="entity-card">
+                  <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="space-y-2">
+                      <p class="label-kicker"><%= interaction.created_at.strftime("%Y-%m-%d %H:%M") %></p>
+                      <h3 class="text-xl font-semibold text-[var(--ink)]"><%= interaction.family.name %></h3>
+                      <p class="text-sm leading-7 text-[var(--ink-soft)]">
+                        model <strong><%= interaction.model %></strong>
+                        · input <strong><%= number_with_delimiter(interaction.input_tokens || interaction.estimated_input_tokens || 0) %></strong>
+                        · output <strong><%= number_with_delimiter(interaction.output_tokens.to_i) %></strong>
+                        · system <strong>~<%= number_with_delimiter(interaction.system_prompt_tokens.to_i) %></strong>
+                        · short-term <strong>~<%= number_with_delimiter(interaction.short_term_tokens.to_i) %></strong>
+                        · user <strong>~<%= number_with_delimiter(interaction.user_message_tokens.to_i) %></strong>
+                      </p>
+                      <p class="text-sm leading-7 text-[var(--ink-soft)]">
+                        prompt <strong><%= interaction.prompt_version %></strong>
+                        · <%= interaction.short_term_message_count.to_i %> short-term messages
+                        · <%= interaction.system_prompt_chars.to_i %> chars in system prompt
+                      </p>
+                      <p class="text-sm leading-7 text-[var(--ink-soft)]">
+                        Heaviest sections: <%= ai_usage_section_summary(interaction) %>
+                      </p>
+                    </div>
+                    <div class="max-w-xl text-sm leading-7 text-[var(--ink-soft)]">
+                      <%= truncate(interaction.content.to_s, length: 220) %>
+                    </div>
+                  </div>
+                </article>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="empty-state mt-6">
+              Тут ще немає LLM-викликів. Після кількох AI-діалогів з’являться вхідні токени, output tokens, оцінка system prompt і breakdown по секціях контексту.
+            </div>
+          <% end %>
+        </div>
+      <% end %>
     </div>
 
     <aside class="workspace-sidebar">
@@ -74,7 +178,7 @@
         <p class="label-kicker">AI settings</p>
         <h2 class="entity-title text-2xl">LLM access</h2>
         <div class="mt-5 space-y-3 text-sm leading-7 text-[var(--ink-soft)]">
-          <p>Mode: <strong><%= @account.personal_ai? ? "Use my own API key" : "Use app default AI" %></strong></p>
+          <p>Mode: <strong><%= @account.ai_access_mode_label %></strong></p>
           <p>Provider: <strong><%= @account.ai_provider_label %></strong></p>
           <p>Model: <strong><%= ai_config.chat_model %></strong></p>
           <p>API base: <strong><%= ai_config.api_base.presence || "not set" %></strong></p>
@@ -82,6 +186,9 @@
             <p>Ollama context: <strong><%= ai_config.chat_params[:num_ctx] %></strong></p>
           <% end %>
           <p>Key status: <strong><%= @account.ollama? ? (ai_config.api_key.present? ? "configured" : "not required") : (@account.personal_ai? ? (@account.ai_api_key.present? ? "saved securely" : "missing") : (ENV["OPENAI_API_KEY"].present? ? "app key available" : "app key missing")) %></strong></p>
+          <% if @account.chatgpt_account? %>
+            <p class="rounded-2xl bg-amber-50 p-3 text-amber-900">ChatGPT account mode uses a personal OpenAI API key from your OpenAI account; browser ChatGPT sessions are not imported.</p>
+          <% end %>
           <% if @account.personal_ai? && @account.ai_api_key.present? %>
             <p>Saved key: <strong><%= @account.masked_ai_api_key %></strong></p>
           <% end %>

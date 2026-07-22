@@ -1,5 +1,6 @@
 class FamilyMember < ApplicationRecord
   include FamilyTabCountsBroadcastable
+  include FamilyWorkspaceRefreshBroadcastable
 
   belongs_to :family
   has_many :member_users, dependent: :destroy

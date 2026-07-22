@@ -11,12 +11,26 @@
     <div class="entity-list mt-6">
       <% if @reminders.any? %>
         <% @reminders.each do |reminder| %>
-          <article class="entity-card">
+          <% execution = automation_execution_for(reminder) %>
+          <% source_message = automation_execution_source_message(execution) %>
+          <article class="entity-card" id="<%= dom_id(reminder) %>">
             <p class="label-kicker"><%= reminder.status.humanize %></p>
             <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= reminder.title %></h3>
             <div class="meta-row mt-4">
               <span class="meta-pill"><%= l(reminder.trigger_at, format: :short) %></span>
               <span class="meta-pill">channel: <%= reminder.channel %></span>
+            </div>
+            <% if execution.present? %>
+              <div class="automation-trace mt-4">
+                <p class="automation-trace-title">Created by automation: <strong><%= execution.automation_rule.name %></strong></p>
+                <% if source_message.present? %>
+                  <p class="automation-trace-copy">Source message: <%= truncate(source_message.content, length: 180) %></p>
+                <% end %>
+              </div>
+            <% end %>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <%= link_to "Edit", tab_family_path(@family, tab: "reminders", edit_reminder_id: reminder.id), class: "cta-secondary" %>
+              <%= button_to "Delete", family_reminder_path(@family, reminder), method: :delete, class: "cta-secondary cursor-pointer", form: { data: { turbo_confirm: "Delete this reminder?" } } %>
             </div>
           </article>
         <% end %>
@@ -30,8 +44,8 @@
 
   <aside class="workspace-sidebar">
     <div class="form-panel">
-      <p class="label-kicker">New reminder</p>
-      <h2 class="entity-title text-2xl">Створити нагадування</h2>
+      <p class="label-kicker"><%= @reminder_form.persisted? ? "Edit reminder" : "New reminder" %></p>
+      <h2 class="entity-title text-2xl"><%= @reminder_form.persisted? ? "Редагувати нагадування" : "Створити нагадування" %></h2>
       <div class="mt-6">
         <%= render "reminders/form", family: @family, reminder: @reminder_form, active_tab: @active_family_tab %>
       </div>

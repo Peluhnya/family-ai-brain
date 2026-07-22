@@ -2,23 +2,52 @@ class AutomationRulesController < ApplicationController
   include FamilyPageContext
 
   before_action :authenticate_user!
-  before_action :set_family, only: :create
-  before_action :set_rule, only: :run_now
+  before_action :set_family, only: %i[create update destroy]
+  before_action :set_rule, only: %i[run_now toggle_active update destroy]
 
   def create
     @automation_rule = @family.automation_rules.new(automation_rule_params)
 
     if @automation_rule.save
-      redirect_to family_tab_redirect_path(@family, "automations"), notice: "Automation rule was successfully created."
+      respond_with_family_tab_success(family: @family, active_tab: "automations", notice: "Automation rule was successfully created.")
     else
-      prepare_family_page(family: @family, active_tab: "automations", form_overrides: { automation_rule_form: @automation_rule })
-      render "families/show", status: :unprocessable_entity
+      render_family_tab_page(family: @family, active_tab: "automations", form_overrides: { automation_rule_form: @automation_rule }, status: :unprocessable_entity)
     end
+  end
+
+  def update
+    if @rule.update(automation_rule_params)
+      respond_with_family_tab_success(family: @family, active_tab: "automations", notice: "Automation rule was successfully updated.")
+    else
+      render_family_tab_page(family: @family, active_tab: "automations", form_overrides: { automation_rule_form: @rule }, status: :unprocessable_entity)
+    end
+  end
+
+  def destroy
+    @rule.destroy!
+    respond_with_family_tab_success(
+      family: @family,
+      active_tab: "automations",
+      notice: "Automation rule was successfully removed.",
+      extra_params: { execution_filter: params[:execution_filter] }
+    )
   end
 
   def run_now
     AutomationRuleExecutionJob.perform_later(@rule.id)
-    redirect_to family_tab_redirect_path(@rule.family, "automations"), notice: "Automation rule queued for execution."
+    respond_with_family_tab_success(family: @rule.family, active_tab: "automations", notice: "Automation rule queued for execution.")
+  end
+
+  def toggle_active
+    @rule.update!(active: !@rule.active?)
+    status = @rule.active? ? "enabled" : "disabled"
+
+    respond_with_family_tab_success(
+      family: @rule.family,
+      active_tab: "automations",
+      notice: "Automation rule #{status}.",
+      extra_params: { execution_filter: params[:execution_filter] }
+    )
   end
 
   private

@@ -1,9 +1,10 @@
 class Account < ApplicationRecord
-  AI_ACCESS_MODES = %w[app_default personal_api_key].freeze
+  AI_ACCESS_MODES = %w[app_default personal_api_key chatgpt_account].freeze
   AI_PROVIDERS = %w[openai openai_compatible ollama].freeze
 
   belongs_to :user
   has_many :families, dependent: :destroy
+  has_many :ai_interactions, through: :families
 
   encrypts :name, :description, :email, :ai_api_key, :ai_api_base
 
@@ -16,7 +17,18 @@ class Account < ApplicationRecord
   before_validation :normalize_ai_settings
 
   def personal_ai?
-    ai_access_mode == "personal_api_key"
+    %w[personal_api_key chatgpt_account].include?(ai_access_mode)
+  end
+
+  def chatgpt_account?
+    ai_access_mode == "chatgpt_account"
+  end
+
+  def ai_access_mode_label
+    return "Use my ChatGPT/OpenAI account" if chatgpt_account?
+    return "Use my own API key" if personal_ai?
+
+    "Use app default AI"
   end
 
   def openai_compatible?

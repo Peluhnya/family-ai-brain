@@ -9,6 +9,7 @@ class AccountsController < ApplicationController
   def show
     @families = @account.families.includes(family_members: :member_users).order(:name)
     @family = @account.families.new(timezone: "Europe/Berlin", locale: I18n.locale.to_s)
+    load_ai_usage if ai_debug_ui_enabled?
   end
 
   def new
@@ -64,6 +65,10 @@ class AccountsController < ApplicationController
 
   private
 
+  def ai_debug_ui_enabled?
+    Rails.env.development? || Rails.env.test?
+  end
+
   def set_account
     @account = current_user.accounts.find(params.expect(:id))
   end
@@ -76,5 +81,37 @@ class AccountsController < ApplicationController
     end
 
     permitted
+  end
+
+  def load_ai_usage
+    usage_scope = @account.ai_interactions.tracked_llm_requests
+    @recent_ai_requests = usage_scope.includes(:family).order(created_at: :desc).limit(12)
+    @ai_usage_summary = {
+      requests_count: usage_scope.count,
+      total_tokens: usage_scope.sum(:tokens),
+      total_input_tokens: usage_scope.sum(:input_tokens),
+      total_output_tokens: usage_scope.sum(:output_tokens),
+      total_system_prompt_tokens: usage_scope.sum(:system_prompt_tokens),
+      average_input_tokens: usage_scope.average(:input_tokens)&.round,
+      average_output_tokens: usage_scope.average(:output_tokens)&.round,
+      average_system_prompt_tokens: usage_scope.average(:system_prompt_tokens)&.round,
+      average_short_term_tokens: usage_scope.average(:short_term_tokens)&.round,
+      average_user_message_tokens: usage_scope.average(:user_message_tokens)&.round,
+      fallback_count: @account.ai_interactions.assistant_role.where(model: "local-fallback").count
+    }
+
+    @ai_usage_by_family = usage_scope.group(:family_id).sum(:tokens).sort_by { |_, tokens| -tokens.to_i }.filter_map do |family_id, tokens|
+      family = @families.find { |item| item.id == family_id }
+      next unless family
+
+      family_scope = usage_scope.where(family_id: family_id)
+      {
+        family: family,
+        requests_count: family_scope.count,
+        total_tokens: tokens.to_i,
+        average_input_tokens: family_scope.average(:input_tokens)&.round,
+        average_system_prompt_tokens: family_scope.average(:system_prompt_tokens)&.round
+      }
+    end
   end
 end

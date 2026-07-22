@@ -2,11 +2,14 @@
 <%= form_with(model: ai_interaction, url: family_ai_interactions_path(family), class: "space-y-4", id: "ai_interaction_form") do |form| %>
   <%= hidden_field_tag :return_tab, active_tab %>
   <div>
-    <%= form.label :content, "Повідомлення для Family Brain", class: "form-label" %>
-    <%= form.text_area :content, rows: 4, class: "form-input", placeholder: "Напиши запит для сімейного AI..." %>
+    <%= form.label :content, "Повідомлення", class: "sr-only" %>
+    <%= form.text_area :content, rows: 3, class: "form-input", placeholder: "Напишіть повідомлення…", autofocus: true %>
   </div>
-  <div class="flex flex-wrap gap-3">
-    <%= form.submit "Надіслати в чат", class: "cta-primary cursor-pointer" %>
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <span class="text-xs text-[var(--muted)]">Enter — новий рядок · повідомлення обробиться у фоні</span>
+    <%= form.button class: "cta-primary cursor-pointer" do %>
+      <span>Надіслати</span><%= ui_icon("send") %>
+    <% end %>
     <% if ENV["OPENAI_API_KEY"].blank? && !family.account.ollama? %>
       <span class="meta-pill">OPENAI_API_KEY missing: зараз працює fallback reply</span>
     <% end %>

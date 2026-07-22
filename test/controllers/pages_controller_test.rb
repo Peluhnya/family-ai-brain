@@ -5,6 +5,6 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     get root_url
 
     assert_response :success
-    assert_select "h1", text: /Менше рутини/
+    assert_select "h1", text: /Усе важливе/
   end
 end

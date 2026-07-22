@@ -3,30 +3,17 @@
 <section class="auth-shell">
   <aside class="auth-aside">
     <div class="absolute bottom-0 left-0 h-56 w-56 rounded-full bg-[rgba(250,204,21,0.16)] blur-3xl"></div>
-    <p class="text-xs uppercase tracking-[0.32em] text-white/70">Early access</p>
-    <h1 class="mt-5 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-4xl leading-tight font-semibold sm:text-5xl">
-      Запустіть AI brain для своєї сім’ї.
-    </h1>
+    <p class="eyebrow text-white"><%= ui_icon("sparkles") %> Family Brain</p>
+    <h1>Більше часу одне для одного.</h1>
     <p class="mt-5 max-w-xl text-base leading-8 text-white/78">
-      Пам’ять про події, автоматичні дії, контекст із задач і календаря та менше ручної координації щодня.
+      Зберіть сімейні плани, справи й важливі деталі в одному спокійному просторі.
     </p>
-
-    <div class="mt-10 grid gap-4">
-      <div class="rounded-[1.5rem] border border-white/12 bg-white/8 p-5">
-        <p class="text-sm font-medium text-white/70">Для чого</p>
-        <p class="mt-2 text-sm leading-7 text-white/85">Щоб сім’я не губила задачі, події, домовленості та важливі факти в різних додатках.</p>
-      </div>
-      <div class="rounded-[1.5rem] border border-white/12 bg-white/8 p-5">
-        <p class="text-sm font-medium text-white/70">Що отримаєте</p>
-        <p class="mt-2 text-sm leading-7 text-white/85">Єдиний AI-шар над reminders, events, knowledge, documents і фоновими automation rules.</p>
-      </div>
-    </div>
   </aside>
 
   <div class="auth-card self-center">
-    <p class="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">Create account</p>
-    <h2 class="mt-4 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-4xl font-semibold text-[var(--ink)]">Створити акаунт</h2>
-    <p class="mt-3 text-base leading-7 text-[var(--ink-soft)]">Почніть із базового доступу і далі добудовуйте AI-операційну систему сім’ї навколо реального побуту.</p>
+    <p class="eyebrow"><%= ui_icon("plus") %> Новий простір</p>
+    <h2>Створити акаунт</h2>
+    <p class="mt-3 text-base leading-7 text-[var(--ink-soft)]">Кілька хвилин — і все готово до першої сімейної справи.</p>
 
     <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "mt-8 space-y-5" }) do |f| %>
       <%= render "devise/shared/error_messages", resource: resource %>

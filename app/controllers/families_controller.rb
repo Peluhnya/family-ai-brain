@@ -11,6 +11,10 @@ class FamiliesController < ApplicationController
 
   def show
     prepare_family_page(family: @family, active_tab: params[:tab])
+
+    if turbo_frame_request?
+      render partial: "families/tab_content", locals: { family: @family, active_tab: @active_family_tab }
+    end
   end
 
   def new
@@ -61,7 +65,11 @@ class FamiliesController < ApplicationController
     due_rules = FamilyBrain::AutomationSchedulerService.new(family: @family).due_rules
     due_rules.each { |rule| AutomationRuleExecutionJob.perform_later(rule.id) }
 
-    redirect_to family_tab_redirect_path(@family, "automations"), notice: "#{due_rules.size} automation rule(s) queued."
+    respond_with_family_tab_success(
+      family: @family,
+      active_tab: "automations",
+      notice: "#{due_rules.size} automation rule(s) queued."
+    )
   end
 
   private

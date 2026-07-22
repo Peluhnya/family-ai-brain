@@ -1,5 +1,6 @@
 class Reminder < ApplicationRecord
   include FamilyTabCountsBroadcastable
+  include FamilyWorkspaceRefreshBroadcastable
   self.family_tab_count_update_fields = %i[status trigger_at]
 
   CHANNELS = %w[app email sms].freeze

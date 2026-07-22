@@ -1,8 +1,8 @@
 <nav class="family-tabs-shell" aria-label="Family sections">
   <% family_tab_definitions.each do |tab| %>
     <% active = active_tab == tab[:key] %>
-    <%= link_to family_tab_href(family, tab[:key]), class: active ? "family-tab-link active" : "family-tab-link" do %>
-      <span class="family-tab-kicker"><%= tab[:kicker] %></span>
+    <%= link_to family_tab_href(family, tab[:key]), class: active ? "family-tab-link active" : "family-tab-link", aria: { current: active ? "page" : nil }, data: { turbo_frame: "family_tab_content", turbo_action: "advance" } do %>
+      <%= ui_icon(tab[:icon], class_name: "family-tab-icon") %>
       <span class="family-tab-main">
         <span class="family-tab-label"><%= tab[:label] %></span>
         <span class="family-tab-count" id="<%= family_tab_count_dom_id(family, tab[:key]) %>">

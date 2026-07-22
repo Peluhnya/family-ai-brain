@@ -3,17 +3,33 @@ class DocumentsController < ApplicationController
 
   before_action :authenticate_user!
   before_action :set_family
+  before_action :set_document, only: %i[update destroy]
 
   def create
     @document = @family.documents.new(document_params)
     @document.embedding = FamilyBrain::EmbeddingService.embed([@document.title, @document.content].compact.join("\n\n"), account: @family.account)
 
     if @document.save
-      redirect_to family_tab_redirect_path(@family, "documents"), notice: "Document was successfully created."
+      respond_with_family_tab_success(family: @family, active_tab: "documents", notice: "Document was successfully created.")
     else
-      prepare_family_page(family: @family, active_tab: "documents", form_overrides: { document_form: @document })
-      render "families/show", status: :unprocessable_entity
+      render_family_tab_page(family: @family, active_tab: "documents", form_overrides: { document_form: @document }, status: :unprocessable_entity)
     end
+  end
+
+  def update
+    @document.assign_attributes(document_params)
+    @document.embedding = FamilyBrain::EmbeddingService.embed([@document.title, @document.content].compact.join("\n\n"), account: @family.account)
+
+    if @document.save
+      respond_with_family_tab_success(family: @family, active_tab: "documents", notice: "Document was successfully updated.")
+    else
+      render_family_tab_page(family: @family, active_tab: "documents", form_overrides: { document_form: @document }, status: :unprocessable_entity)
+    end
+  end
+
+  def destroy
+    @document.destroy!
+    respond_with_family_tab_success(family: @family, active_tab: "documents", notice: "Document was successfully removed.")
   end
 
   private
@@ -24,5 +40,9 @@ class DocumentsController < ApplicationController
 
   def document_params
     params.expect(document: %i[title content])
+  end
+
+  def set_document
+    @document = @family.documents.find(params.expect(:id))
   end
 end

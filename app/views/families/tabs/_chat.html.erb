@@ -2,12 +2,11 @@
   <div class="chat-shell">
     <div class="chat-header">
       <div>
-        <p class="label-kicker">AI conversation</p>
-        <h2 class="entity-title text-3xl">Family Brain Chat</h2>
+        <p class="label-kicker">Ваш помічник</p>
+        <h2 class="entity-title text-3xl">Чим допомогти?</h2>
       </div>
       <div class="meta-row">
-        <span class="meta-pill">Short-term memory</span>
-        <span class="meta-pill">Model: <%= FamilyBrain::AccountAiConfig.new(account: @account).chat_model %></span>
+        <span class="status-pill">На зв’язку</span>
       </div>
     </div>
 
@@ -21,15 +20,45 @@
   </div>
 
   <aside class="desk-column">
+    <% if ai_debug_ui_enabled? %>
+      <div class="data-card">
+        <p class="label-kicker">Dev only</p>
+        <h2 class="entity-title text-2xl">AI debug</h2>
+        <% if @recent_ai_debug_interactions.any? %>
+          <div class="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-soft)]">
+            <% @recent_ai_debug_interactions.each do |interaction| %>
+              <div class="entity-card">
+                <p><strong><%= interaction.created_at.strftime("%Y-%m-%d %H:%M") %></strong> · <%= interaction.model %></p>
+                <p>input <strong><%= number_with_delimiter(interaction.input_tokens || interaction.estimated_input_tokens || 0) %></strong> · output <strong><%= number_with_delimiter(interaction.output_tokens.to_i) %></strong></p>
+                <p>system <strong>~<%= number_with_delimiter(interaction.system_prompt_tokens.to_i) %></strong> · short-term <strong>~<%= number_with_delimiter(interaction.short_term_tokens.to_i) %></strong> · user <strong>~<%= number_with_delimiter(interaction.user_message_tokens.to_i) %></strong></p>
+                <p><%= family_ai_usage_section_summary(interaction) %></p>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="empty-state mt-5">
+            Debug-дані з’являться після першої AI-відповіді.
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
     <div class="data-card">
-      <p class="label-kicker">Memory architecture</p>
-      <h2 class="entity-title text-2xl">Memory layers</h2>
-      <div class="mt-5 space-y-3 text-sm leading-7 text-[var(--ink-soft)]">
-        <p>`ai_interactions` це short-term memory для останніх реплік у діалозі.</p>
-        <p>`life_logs` це episodic memory про реальні сімейні події, графіки й звички.</p>
-        <p>`family_knowledge` це semantic memory для стабільних фактів, правил і вподобань.</p>
-        <p>`documents` це RAG layer для довгих reference текстів.</p>
-        <p>`events`, `reminders`, `tasks` і `automation_rules` тепер винесені в окремі сторінки, але лишаються частиною family context.</p>
+      <p class="label-kicker">Огляд</p>
+      <h2 class="entity-title text-2xl">Зараз у фокусі</h2>
+      <div class="entity-list mt-5">
+        <%= link_to tab_family_path(@family, tab: "tasks"), class: "entity-card flex items-center justify-between no-underline", data: { turbo_frame: "family_tab_content", turbo_action: "advance" } do %>
+          <span class="flex items-center gap-3"><%= ui_icon("check") %> Активні задачі</span>
+          <span class="family-tab-count"><%= @family.tasks.active.count %></span>
+        <% end %>
+        <%= link_to tab_family_path(@family, tab: "events"), class: "entity-card flex items-center justify-between no-underline", data: { turbo_frame: "family_tab_content", turbo_action: "advance" } do %>
+          <span class="flex items-center gap-3"><%= ui_icon("calendar") %> Найближчі події</span>
+          <span class="family-tab-count"><%= @family.events.where("start_time >= ?", Time.current.beginning_of_day).count %></span>
+        <% end %>
+        <%= link_to tab_family_path(@family, tab: "reminders"), class: "entity-card flex items-center justify-between no-underline", data: { turbo_frame: "family_tab_content", turbo_action: "advance" } do %>
+          <span class="flex items-center gap-3"><%= ui_icon("bell") %> Нагадування</span>
+          <span class="family-tab-count"><%= @family.reminders.active.count %></span>
+        <% end %>
       </div>
     </div>
   </aside>

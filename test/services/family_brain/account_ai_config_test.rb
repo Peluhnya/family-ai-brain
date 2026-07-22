@@ -37,3 +37,26 @@ module FamilyBrain
     end
   end
 end
+
+module FamilyBrain
+  class AccountAiConfigChatgptAccountTest < ActiveSupport::TestCase
+    test "chatgpt account mode uses personal openai credentials" do
+      account = accounts(:one)
+      account.ai_access_mode = "chatgpt_account"
+      account.ai_provider = "openai"
+      account.ai_api_key = "sk-personal"
+      account.ai_api_base = nil
+      account.ai_model = "gpt-4o"
+
+      config = AccountAiConfig.new(account: account)
+
+      assert_equal "openai", config.provider
+      assert_equal :openai, config.ruby_llm_provider
+      assert_equal "sk-personal", config.api_key
+      assert_equal "gpt-4o", config.chat_model
+      assert_predicate config, :personal_configured?
+      assert_predicate config, :available?
+      assert_equal({ openai_api_key: "sk-personal", openai_api_base: nil }, config.config_overrides)
+    end
+  end
+end

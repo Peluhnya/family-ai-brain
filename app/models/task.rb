@@ -1,5 +1,6 @@
 class Task < ApplicationRecord
   include FamilyTabCountsBroadcastable
+  include FamilyWorkspaceRefreshBroadcastable
   self.family_tab_count_update_fields = %i[status]
 
   STATUSES = %w[pending in_progress done canceled].freeze

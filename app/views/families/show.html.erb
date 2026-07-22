@@ -1,18 +1,16 @@
 <% content_for :title, "#{@family.name} Desk | Family AI Brain" %>
+<% turbo_refreshes_with method: :morph, scroll: :preserve %>
 <%= turbo_stream_from [@family, :ai_chat] %>
 <%= turbo_stream_from [@family, :tab_counts] %>
+<%= turbo_stream_from [@family, :workspace] %>
 
 <section class="workspace-shell">
   <div class="workspace-hero">
-    <p class="label-kicker">Family desk</p>
-    <div class="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+    <p class="eyebrow"><%= ui_icon("users") %> Сімейний простір</p>
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
       <div class="max-w-3xl">
-        <h1 class="font-['Iowan_Old_Style','Palatino_Linotype',serif] text-5xl leading-none font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-6xl">
-          <%= @family.name %>
-        </h1>
-        <p class="mt-5 text-lg leading-8 text-[var(--ink-soft)]">
-          Окремі сторінки для чату, задач, подій, документів і решти family context. Чат відкривається першим, а лічильники в навігації оновлюються асинхронно.
-        </p>
+        <h1><%= @family.name %></h1>
+        <p class="mt-4 text-lg text-[var(--ink-soft)]">Спільні плани, справи та все, що варто пам’ятати.</p>
         <div class="meta-row mt-5">
           <span class="meta-pill"><%= @account.name %></span>
           <span class="meta-pill"><%= @family.timezone.presence || "Timezone not set" %></span>
@@ -21,13 +19,15 @@
       </div>
 
       <div class="flex flex-wrap gap-3">
-        <%= link_to "До акаунта", account_path(@account), class: "cta-secondary" %>
-        <%= link_to "Редагувати сім’ю", edit_family_path(@family), class: "cta-secondary" %>
+        <%= link_to account_path(@account), class: "cta-secondary" do %>
+          <%= ui_icon("arrow-left") %><span>До простору</span>
+        <% end %>
+        <%= link_to edit_family_path(@family), class: "cta-secondary" do %>
+          <%= ui_icon("settings") %><span>Налаштування</span>
+        <% end %>
       </div>
     </div>
   </div>
 
-  <%= render "families/tab_nav", family: @family, active_tab: @active_family_tab %>
-
-  <%= render "families/tabs/#{@active_family_tab}" %>
+  <%= render "families/tab_content", family: @family, active_tab: @active_family_tab %>
 </section>

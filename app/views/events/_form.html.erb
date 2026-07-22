@@ -1,5 +1,5 @@
 <% active_tab = local_assigns.fetch(:active_tab, "events") %>
-<%= form_with(model: event, url: family_events_path(family), class: "space-y-5") do |form| %>
+<%= form_with(model: event, url: event.persisted? ? family_event_path(family, event) : family_events_path(family), class: "space-y-5") do |form| %>
   <%= hidden_field_tag :return_tab, active_tab %>
   <% if event.errors.any? %>
     <div class="error-box">
@@ -45,6 +45,9 @@
   </div>
 
   <div class="flex flex-wrap gap-3">
-    <%= form.submit "Додати подію", class: "cta-primary cursor-pointer" %>
+    <%= form.submit(event.persisted? ? "Оновити подію" : "Додати подію", class: "cta-primary cursor-pointer") %>
+    <% if event.persisted? %>
+      <%= link_to "Скасувати", family_tab_href(family, "events"), class: "cta-secondary" %>
+    <% end %>
   </div>
 <% end %>

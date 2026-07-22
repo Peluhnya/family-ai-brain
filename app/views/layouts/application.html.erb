@@ -1,19 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
   <head>
-    <title><%= content_for(:title) || "Family Ai Brain" %></title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="description" content="<%= content_for(:meta_description) || "AI brain для сім'ї: пам'ять, автоматизація, контекст і менше рутини щодня." %>">
+    <title><%= content_for(:title) || "Family AI Brain" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="description" content="<%= content_for(:meta_description) || "Розумний простір для сімейних справ, пам’яті та щоденних рішень." %>">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#090a0d" media="(prefers-color-scheme: dark)">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Family Ai Brain">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="application-name" content="Family AI Brain">
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-
     <%= yield :head %>
-
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
 
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -24,59 +23,69 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-[var(--page-bg)] text-[var(--ink)] antialiased">
-    <div class="relative min-h-screen overflow-hidden">
-      <div class="pointer-events-none absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.72),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(250,204,21,0.26),_transparent_24%),linear-gradient(180deg,_rgba(254,243,199,0.72),_transparent_64%)]"></div>
-      <div class="pointer-events-none absolute left-[-8rem] top-32 h-72 w-72 rounded-full bg-[rgba(198,169,105,0.12)] blur-3xl"></div>
-      <div class="pointer-events-none absolute right-[-5rem] top-64 h-80 w-80 rounded-full bg-[rgba(33,74,68,0.12)] blur-3xl"></div>
+  <body class="app-body">
+    <div class="ambient-canvas" aria-hidden="true">
+      <span class="ambient-orb ambient-orb-blue"></span>
+      <span class="ambient-orb ambient-orb-violet"></span>
+      <span class="ambient-orb ambient-orb-cyan"></span>
+      <span class="ambient-noise"></span>
+    </div>
 
-      <header class="relative z-10">
-        <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-6 lg:px-8">
-          <%= link_to root_path, class: "flex items-center gap-3" do %>
-            <span class="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-lg font-semibold shadow-[0_18px_40px_rgba(49,46,43,0.08)] backdrop-blur">FA</span>
-            <span>
-              <span class="block font-['Avenir_Next','Segoe_UI',sans-serif] text-xs uppercase tracking-[0.32em] text-[var(--muted)]">Family AI Brain</span>
-              <span class="block font-['Iowan_Old_Style','Palatino_Linotype',serif] text-lg font-semibold">Memory + Automation + Context</span>
+    <div class="app-frame">
+      <header class="app-header">
+        <div class="app-toolbar liquid-glass">
+          <%= link_to root_path, class: "app-brand", aria: { label: "Family AI Brain — головна" } do %>
+            <span class="app-mark"><%= ui_icon("sparkles", class_name: "app-mark-icon") %></span>
+            <span class="app-brand-copy">
+              <strong>Family</strong>
+              <span>Brain</span>
             </span>
           <% end %>
 
-          <nav class="hidden items-center gap-8 font-['Avenir_Next','Segoe_UI',sans-serif] text-sm text-[var(--muted)] lg:flex">
-            <a href="#product" class="transition hover:text-[var(--ink)]">Продукт</a>
-            <a href="#architecture" class="transition hover:text-[var(--ink)]">Архітектура</a>
-            <a href="#privacy" class="transition hover:text-[var(--ink)]">Privacy</a>
-            <a href="#pricing" class="transition hover:text-[var(--ink)]">Pricing</a>
+          <nav class="app-nav" aria-label="Головна навігація">
             <% if user_signed_in? %>
-              <%= link_to "Акаунти", accounts_path, class: "transition hover:text-[var(--ink)]" %>
+              <%= link_to accounts_path, class: "app-nav-link" do %>
+                <%= ui_icon("home") %>
+                <span>Простори</span>
+              <% end %>
+            <% else %>
+              <%= link_to "Можливості", root_path(anchor: "product"), class: "app-nav-link app-nav-text-link" %>
+              <%= link_to "Приватність", root_path(anchor: "privacy"), class: "app-nav-link app-nav-text-link" %>
             <% end %>
           </nav>
 
-          <div class="flex items-center gap-3">
+          <div class="app-actions">
             <% if user_signed_in? %>
-              <span class="hidden rounded-full border border-[var(--line)] bg-white/75 px-4 py-2 text-sm text-[var(--muted)] shadow-sm backdrop-blur sm:inline-flex">
-                <%= current_user.email %>
+              <span class="account-chip" title="<%= current_user.email %>">
+                <span class="account-avatar"><%= current_user.email.first.upcase %></span>
+                <span class="account-email"><%= current_user.email %></span>
               </span>
-              <%= link_to "Мої акаунти", accounts_path, class: "hidden text-sm font-medium text-[var(--ink)] transition hover:text-[var(--accent)] sm:inline-flex" %>
-              <%= link_to "Вийти", destroy_user_session_path, data: { turbo_method: :delete }, class: "inline-flex items-center justify-center rounded-full border border-[var(--line-strong)] px-5 py-2.5 text-sm font-medium text-[var(--ink)] transition hover:-translate-y-0.5 hover:bg-white" %>
+              <%= link_to destroy_user_session_path, data: { turbo_method: :delete }, class: "icon-button", aria: { label: "Вийти" }, title: "Вийти" do %>
+                <%= ui_icon("arrow-right") %>
+              <% end %>
             <% else %>
-              <%= link_to "Увійти", new_user_session_path, class: "hidden text-sm font-medium text-[var(--ink)] transition hover:text-[var(--accent)] sm:inline-flex" %>
-              <%= link_to "Створити акаунт", new_user_registration_path, class: "inline-flex items-center justify-center rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white shadow-[0_18px_35px_rgba(33,74,68,0.24)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)]" %>
+              <%= link_to "Увійти", new_user_session_path, class: "button button-quiet" %>
+              <%= link_to new_user_registration_path, class: "button button-primary header-primary" do %>
+                <span>Спробувати</span>
+                <%= ui_icon("arrow-right") %>
+              <% end %>
             <% end %>
           </div>
         </div>
       </header>
 
       <% if notice.present? || alert.present? %>
-        <div class="relative z-10 mx-auto w-full max-w-7xl px-5 pt-2 sm:px-6 lg:px-8">
+        <div class="flash-stack" aria-live="polite">
           <% if notice.present? %>
-            <p class="rounded-2xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-900 shadow-sm backdrop-blur"><%= notice %></p>
+            <div class="flash-message flash-success liquid-glass"><%= notice %></div>
           <% end %>
           <% if alert.present? %>
-            <p class="mt-3 rounded-2xl border border-rose-200/80 bg-rose-50/90 px-4 py-3 text-sm text-rose-900 shadow-sm backdrop-blur"><%= alert %></p>
+            <div class="flash-message flash-error liquid-glass"><%= alert %></div>
           <% end %>
         </div>
       <% end %>
 
-      <main class="relative z-10">
+      <main class="app-main">
         <%= yield %>
       </main>
     </div>

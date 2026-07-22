@@ -3,17 +3,33 @@ class FamilyKnowledgeController < ApplicationController
 
   before_action :authenticate_user!
   before_action :set_family
+  before_action :set_knowledge, only: %i[update destroy]
 
   def create
     @knowledge = @family.family_knowledge.new(family_knowledge_params)
     @knowledge.embedding = FamilyBrain::EmbeddingService.embed([@knowledge.key, @knowledge.value].compact.join(": "), account: @family.account)
 
     if @knowledge.save
-      redirect_to family_tab_redirect_path(@family, "knowledge"), notice: "Family knowledge was successfully created."
+      respond_with_family_tab_success(family: @family, active_tab: "knowledge", notice: "Family knowledge was successfully created.")
     else
-      prepare_family_page(family: @family, active_tab: "knowledge", form_overrides: { family_knowledge_form: @knowledge })
-      render "families/show", status: :unprocessable_entity
+      render_family_tab_page(family: @family, active_tab: "knowledge", form_overrides: { family_knowledge_form: @knowledge }, status: :unprocessable_entity)
     end
+  end
+
+  def update
+    @knowledge.assign_attributes(family_knowledge_params)
+    @knowledge.embedding = FamilyBrain::EmbeddingService.embed([@knowledge.key, @knowledge.value].compact.join(": "), account: @family.account)
+
+    if @knowledge.save
+      respond_with_family_tab_success(family: @family, active_tab: "knowledge", notice: "Family knowledge was successfully updated.")
+    else
+      render_family_tab_page(family: @family, active_tab: "knowledge", form_overrides: { family_knowledge_form: @knowledge }, status: :unprocessable_entity)
+    end
+  end
+
+  def destroy
+    @knowledge.destroy!
+    respond_with_family_tab_success(family: @family, active_tab: "knowledge", notice: "Family knowledge was successfully removed.")
   end
 
   private
@@ -24,5 +40,9 @@ class FamilyKnowledgeController < ApplicationController
 
   def family_knowledge_params
     params.expect(family_knowledge: %i[key value source confidence])
+  end
+
+  def set_knowledge
+    @knowledge = @family.family_knowledge.find(params.expect(:id))
   end
 end

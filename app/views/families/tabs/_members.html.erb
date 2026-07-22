@@ -11,7 +11,7 @@
     <div class="entity-list mt-6">
       <% if @family.family_members.any? %>
         <% @family.family_members.includes(:users).order(:name).each do |member| %>
-          <article class="entity-card">
+          <article class="entity-card" id="<%= dom_id(member) %>">
             <p class="label-kicker"><%= member.role.presence || "family member" %></p>
             <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= member.name %></h3>
             <p class="mt-3 muted-copy">
@@ -22,7 +22,8 @@
               <% end %>
             </p>
             <div class="mt-4 flex flex-wrap gap-3">
-              <%= link_to "Редагувати", edit_family_member_path(member), class: "cta-secondary" %>
+              <%= link_to "Редагувати", tab_family_path(@family, tab: "members", edit_family_member_id: member.id), class: "cta-secondary" %>
+              <%= button_to "Видалити", family_family_member_path(@family, member), method: :delete, class: "cta-secondary cursor-pointer", form: { data: { turbo_confirm: "Delete this family member?" } } %>
             </div>
           </article>
         <% end %>
@@ -36,8 +37,8 @@
 
   <aside class="workspace-sidebar">
     <div class="form-panel">
-      <p class="label-kicker">New member</p>
-      <h2 class="entity-title text-2xl">Додати члена сім’ї</h2>
+      <p class="label-kicker"><%= @family_member_form.persisted? ? "Edit member" : "New member" %></p>
+      <h2 class="entity-title text-2xl"><%= @family_member_form.persisted? ? "Редагувати члена сім’ї" : "Додати члена сім’ї" %></h2>
       <div class="mt-6">
         <%= render "family_members/form", family: @family, family_member: @family_member_form, available_users: @available_users, active_tab: @active_family_tab %>
       </div>

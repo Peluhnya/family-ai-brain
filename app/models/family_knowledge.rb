@@ -1,5 +1,6 @@
 class FamilyKnowledge < ApplicationRecord
   include FamilyTabCountsBroadcastable
+  include FamilyWorkspaceRefreshBroadcastable
 
   self.table_name = "family_knowledge"
 

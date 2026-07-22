@@ -1,5 +1,5 @@
 <% active_tab = local_assigns.fetch(:active_tab, "connections") %>
-<%= form_with(model: calendar_connection, url: family_calendar_connections_path(family), class: "space-y-5") do |form| %>
+<%= form_with(model: calendar_connection, url: calendar_connection.persisted? ? family_calendar_connection_path(family, calendar_connection) : family_calendar_connections_path(family), class: "space-y-5") do |form| %>
   <%= hidden_field_tag :return_tab, active_tab %>
   <% if calendar_connection.errors.any? %>
     <div class="error-box">
@@ -56,6 +56,9 @@
   </label>
 
   <div class="flex flex-wrap gap-3">
-    <%= form.submit "Додати підключення", class: "cta-primary cursor-pointer" %>
+    <%= form.submit(calendar_connection.persisted? ? "Оновити підключення" : "Додати підключення", class: "cta-primary cursor-pointer") %>
+    <% if calendar_connection.persisted? %>
+      <%= link_to "Скасувати", family_tab_href(family, "connections"), class: "cta-secondary" %>
+    <% end %>
   </div>
 <% end %>

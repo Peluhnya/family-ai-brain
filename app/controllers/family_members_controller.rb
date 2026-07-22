@@ -2,7 +2,7 @@ class FamilyMembersController < ApplicationController
   include FamilyPageContext
 
   before_action :authenticate_user!
-  before_action :set_family, only: :create
+  before_action :set_family, only: %i[create update destroy]
   before_action :set_family_member, only: %i[edit update destroy]
   before_action :prepare_member_form_data, only: :edit
 
@@ -10,31 +10,24 @@ class FamilyMembersController < ApplicationController
     @family_member = @family.family_members.new(family_member_params)
 
     if attach_user_to_member(@family_member) && @family_member.save
-      redirect_to family_tab_redirect_path(@family, "members"), notice: "Family member was successfully created."
+      respond_with_family_tab_success(family: @family, active_tab: "members", notice: "Family member was successfully created.")
     else
-      prepare_family_page(family: @family, active_tab: "members", form_overrides: { family_member_form: @family_member })
-      render "families/show", status: :unprocessable_entity
+      render_family_tab_page(family: @family, active_tab: "members", form_overrides: { family_member_form: @family_member }, status: :unprocessable_entity)
     end
   end
 
-  def edit; end
-
   def update
-    @family = @family_member.family
-
     if @family_member.update(family_member_params) && replace_member_link(@family_member)
-      redirect_to family_tab_redirect_path(@family, "members"), notice: "Family member was successfully updated."
+      respond_with_family_tab_success(family: @family, active_tab: "members", notice: "Family member was successfully updated.")
     else
-      prepare_member_form_data
-      render :edit, status: :unprocessable_entity
+      render_family_tab_page(family: @family, active_tab: "members", form_overrides: { family_member_form: @family_member }, status: :unprocessable_entity)
     end
   end
 
   def destroy
-    family = @family_member.family
     @family_member.destroy!
 
-    redirect_to family_tab_redirect_path(family, "members"), notice: "Family member was successfully removed.", status: :see_other
+    respond_with_family_tab_success(family: @family, active_tab: "members", notice: "Family member was successfully removed.")
   end
 
   private
@@ -110,7 +103,5 @@ class FamilyMembersController < ApplicationController
     created_user
   end
 
-  def prepare_member_form_data
-    @available_users = available_users_for(@family_member.family.account)
-  end
+  def prepare_member_form_data; end
 end

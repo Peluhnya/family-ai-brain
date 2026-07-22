@@ -7,6 +7,19 @@ module FamilyBrain
     end
 
     def call
+      ActiveRecord::Base.transaction do
+        execution = acquire_execution_guard!
+        entity = execute_action!
+        finalize_execution!(execution, entity)
+        @rule.update!(last_executed_at: Time.current)
+      end
+    rescue ActiveRecord::RecordNotUnique
+      nil
+    end
+
+    private
+
+    def execute_action!
       case @rule.action_type
       when "create_ai_note"
         @family.ai_interactions.create!(
@@ -25,6 +38,7 @@ module FamilyBrain
         log.embedding = FamilyBrain::EmbeddingService.embed([log.event_type, log.summary, log.raw_text].compact.join("\n"), account: @family.account)
         log.save!
         FamilyBrain::KnowledgeSyncService.new(family: @family, text: [log.summary, log.raw_text].compact.join("\n"), source: "automation_rule:auto").call
+        log
       when "create_family_knowledge"
         key = interpolate(@rule.action_config["key"])
         value = interpolate(@rule.action_config["value"])
@@ -34,6 +48,7 @@ module FamilyBrain
         knowledge.confidence = (@rule.action_config["confidence"] || 0.8).to_f.clamp(0.0, 1.0)
         knowledge.embedding = FamilyBrain::EmbeddingService.embed("#{key}: #{value}", account: @family.account)
         knowledge.save!
+        knowledge
       when "create_task"
         @family.tasks.create!(
           title: interpolate(@rule.action_config["title"]),
@@ -62,11 +77,46 @@ module FamilyBrain
       else
         raise "Unsupported automation action: #{@rule.action_type}"
       end
-
-      @rule.update!(last_executed_at: Time.current)
     end
 
-    private
+    def acquire_execution_guard!
+      return nil if source_type.blank? || source_id.blank?
+
+      @rule.automation_rule_executions.create!(
+        family: @family,
+        action_type: @rule.action_type,
+        source_type: source_type,
+        source_id: source_id,
+        status: "completed",
+        context_digest: context_digest
+      )
+    end
+
+    def finalize_execution!(execution, entity)
+      return if execution.blank?
+
+      execution.update!(
+        created_entity_type: entity.class.name,
+        created_entity_id: entity.id
+      )
+    end
+
+    def source_type
+      @context[:source_type].to_s.presence
+    end
+
+    def source_id
+      @context[:source_id].presence
+    end
+
+    def context_digest
+      Digest::SHA256.hexdigest([
+        @rule.id,
+        @rule.action_type,
+        @context[:keyword].to_s,
+        @context[:message].to_s
+      ].join(":"))
+    end
 
     def interpolate(value)
       value.to_s

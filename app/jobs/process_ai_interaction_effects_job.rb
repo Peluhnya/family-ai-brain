@@ -41,7 +41,12 @@ class ProcessAiInteractionEffectsJob < ApplicationJob
       next if keyword.blank?
       next unless user_message.content.to_s.downcase.include?(keyword)
 
-      AutomationRuleExecutionJob.perform_later(rule.id, { keyword: keyword, message: user_message.content })
+      AutomationRuleExecutionJob.perform_later(rule.id, {
+        keyword: keyword,
+        message: user_message.content,
+        source_type: "AiInteraction",
+        source_id: user_message.id
+      })
     end
   end
 end

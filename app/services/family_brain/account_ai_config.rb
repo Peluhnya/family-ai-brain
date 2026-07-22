@@ -12,18 +12,20 @@ module FamilyBrain
     end
 
     def api_key
-      return @account.ai_api_key if @account.personal_ai? && @account.ai_api_key.present?
+      return @account.ai_api_key if personal_account_ai? && @account.ai_api_key.present?
 
       env_api_key
     end
 
     def api_base
-      return @account.ai_api_base if @account.personal_ai? && @account.ai_api_base.present?
+      return @account.ai_api_base if personal_account_ai? && @account.ai_api_base.present?
 
       env_api_base
     end
 
     def provider
+      return "openai" if @account.chatgpt_account?
+
       @account.ai_provider.presence || "openai"
     end
 
@@ -36,10 +38,10 @@ module FamilyBrain
     end
 
     def personal_configured?
-      return @account.personal_ai? && @account.ai_api_base.present? if ollama?
-      return @account.personal_ai? && @account.ai_api_key.present? && @account.ai_api_base.present? if openai_compatible?
+      return personal_account_ai? && @account.ai_api_base.present? if ollama?
+      return personal_account_ai? && @account.ai_api_key.present? && @account.ai_api_base.present? if openai_compatible?
 
-      @account.personal_ai? && @account.ai_api_key.present?
+      personal_account_ai? && @account.ai_api_key.present?
     end
 
     def available?
@@ -57,6 +59,10 @@ module FamilyBrain
       return :ollama if ollama?
 
       :openai
+    end
+
+    def chatgpt_account?
+      @account.chatgpt_account?
     end
 
     def config_overrides
@@ -80,6 +86,10 @@ module FamilyBrain
     end
 
     private
+
+    def personal_account_ai?
+      @account.personal_ai?
+    end
 
     def ollama?
       provider == "ollama"

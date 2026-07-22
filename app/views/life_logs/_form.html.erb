@@ -1,5 +1,5 @@
 <% active_tab = local_assigns.fetch(:active_tab, "logs") %>
-<%= form_with(model: life_log, url: family_life_logs_path(family), class: "space-y-5") do |form| %>
+<%= form_with(model: life_log, url: life_log.persisted? ? family_life_log_path(family, life_log) : family_life_logs_path(family), class: "space-y-5") do |form| %>
   <%= hidden_field_tag :return_tab, active_tab %>
   <% if life_log.errors.any? %>
     <div class="error-box">
@@ -39,6 +39,9 @@
   </div>
 
   <div class="flex flex-wrap gap-3">
-    <%= form.submit "Додати life log", class: "cta-primary cursor-pointer" %>
+    <%= form.submit(life_log.persisted? ? "Оновити life log" : "Додати life log", class: "cta-primary cursor-pointer") %>
+    <% if life_log.persisted? %>
+      <%= link_to "Скасувати", family_tab_href(family, "logs"), class: "cta-secondary" %>
+    <% end %>
   </div>
 <% end %>

@@ -1,5 +1,5 @@
 <% active_tab = local_assigns.fetch(:active_tab, "reminders") %>
-<%= form_with(model: reminder, url: family_reminders_path(family), class: "space-y-5") do |form| %>
+<%= form_with(model: reminder, url: reminder.persisted? ? family_reminder_path(family, reminder) : family_reminders_path(family), class: "space-y-5") do |form| %>
   <%= hidden_field_tag :return_tab, active_tab %>
   <% if reminder.errors.any? %>
     <div class="error-box">
@@ -34,6 +34,9 @@
   </div>
 
   <div class="flex flex-wrap gap-3">
-    <%= form.submit "Додати reminder", class: "cta-primary cursor-pointer" %>
+    <%= form.submit(reminder.persisted? ? "Оновити reminder" : "Додати reminder", class: "cta-primary cursor-pointer") %>
+    <% if reminder.persisted? %>
+      <%= link_to "Скасувати", family_tab_href(family, "reminders"), class: "cta-secondary" %>
+    <% end %>
   </div>
 <% end %>

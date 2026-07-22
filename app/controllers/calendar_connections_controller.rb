@@ -2,18 +2,31 @@ class CalendarConnectionsController < ApplicationController
   include FamilyPageContext
 
   before_action :authenticate_user!
-  before_action :set_family, only: :create
+  before_action :set_family, only: %i[create update destroy]
   before_action :set_connection, only: %i[sync authorize_google select_google_calendar update_google_calendar]
+  before_action :set_nested_connection, only: %i[update destroy]
 
   def create
     @calendar_connection = @family.calendar_connections.new(calendar_connection_params)
 
     if @calendar_connection.save
-      redirect_to family_tab_redirect_path(@family, "connections"), notice: "Calendar connection was successfully created."
+      respond_with_family_tab_success(family: @family, active_tab: "connections", notice: "Calendar connection was successfully created.")
     else
-      prepare_family_page(family: @family, active_tab: "connections", form_overrides: { calendar_connection_form: @calendar_connection })
-      render "families/show", status: :unprocessable_entity
+      render_family_tab_page(family: @family, active_tab: "connections", form_overrides: { calendar_connection_form: @calendar_connection }, status: :unprocessable_entity)
     end
+  end
+
+  def update
+    if @calendar_connection.update(calendar_connection_params)
+      respond_with_family_tab_success(family: @family, active_tab: "connections", notice: "Calendar connection was successfully updated.")
+    else
+      render_family_tab_page(family: @family, active_tab: "connections", form_overrides: { calendar_connection_form: @calendar_connection }, status: :unprocessable_entity)
+    end
+  end
+
+  def destroy
+    @calendar_connection.destroy!
+    respond_with_family_tab_success(family: @family, active_tab: "connections", notice: "Calendar connection was successfully removed.")
   end
 
   def authorize_google
@@ -103,6 +116,10 @@ class CalendarConnectionsController < ApplicationController
     @calendar_connection = CalendarConnection.joins(family: :account)
       .where(accounts: { user_id: current_user.id })
       .find(params.expect(:id))
+  end
+
+  def set_nested_connection
+    @calendar_connection = @family.calendar_connections.find(params.expect(:id))
   end
 
   def calendar_connection_params

@@ -1,5 +1,6 @@
 class Event < ApplicationRecord
   include FamilyTabCountsBroadcastable
+  include FamilyWorkspaceRefreshBroadcastable
   self.family_tab_count_update_fields = %i[start_time]
 
   SOURCES = %w[manual ai_chat automation_rule google_calendar apple_calendar outlook_calendar imported].freeze

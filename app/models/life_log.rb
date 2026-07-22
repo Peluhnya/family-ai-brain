@@ -1,5 +1,6 @@
 class LifeLog < ApplicationRecord
   include FamilyTabCountsBroadcastable
+  include FamilyWorkspaceRefreshBroadcastable
 
   belongs_to :family
 

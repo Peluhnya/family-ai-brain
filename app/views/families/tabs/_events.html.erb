@@ -11,7 +11,9 @@
     <div class="entity-list mt-6">
       <% if @events.any? %>
         <% @events.each do |event| %>
-          <article class="entity-card">
+          <% execution = automation_execution_for(event) %>
+          <% source_message = automation_execution_source_message(execution) %>
+          <article class="entity-card" id="<%= dom_id(event) %>">
             <p class="label-kicker"><%= event.source.presence || "manual" %></p>
             <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= event.title %></h3>
             <p class="mt-3 muted-copy"><%= event.location.presence || "Без локації" %></p>
@@ -21,6 +23,18 @@
               <% if event.external_id.present? %>
                 <span class="meta-pill">synced</span>
               <% end %>
+            </div>
+            <% if execution.present? %>
+              <div class="automation-trace mt-4">
+                <p class="automation-trace-title">Created by automation: <strong><%= execution.automation_rule.name %></strong></p>
+                <% if source_message.present? %>
+                  <p class="automation-trace-copy">Source message: <%= truncate(source_message.content, length: 180) %></p>
+                <% end %>
+              </div>
+            <% end %>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <%= link_to "Edit", tab_family_path(@family, tab: "events", edit_event_id: event.id), class: "cta-secondary" %>
+              <%= button_to "Delete", family_event_path(@family, event), method: :delete, class: "cta-secondary cursor-pointer", form: { data: { turbo_confirm: "Delete this event?" } } %>
             </div>
           </article>
         <% end %>
@@ -34,8 +48,8 @@
 
   <aside class="workspace-sidebar">
     <div class="form-panel">
-      <p class="label-kicker">New event</p>
-      <h2 class="entity-title text-2xl">Створити подію</h2>
+      <p class="label-kicker"><%= @event_form.persisted? ? "Edit event" : "New event" %></p>
+      <h2 class="entity-title text-2xl"><%= @event_form.persisted? ? "Редагувати подію" : "Створити подію" %></h2>
       <div class="mt-6">
         <%= render "events/form", family: @family, event: @event_form, active_tab: @active_family_tab %>
       </div>

@@ -14,7 +14,7 @@
     <div class="entity-list mt-6">
       <% if @automation_rules.any? %>
         <% @automation_rules.each do |rule| %>
-          <article class="entity-card">
+          <article class="entity-card" id="<%= dom_id(rule) %>">
             <p class="label-kicker"><%= rule.active? ? "active" : "inactive" %></p>
             <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= rule.name %></h3>
             <div class="meta-row mt-4">
@@ -31,6 +31,8 @@
             </div>
             <div class="mt-4 flex flex-wrap gap-3">
               <%= button_to "Run now", run_now_automation_rule_path(rule), method: :post, class: "cta-secondary cursor-pointer" %>
+              <%= link_to "Edit", tab_family_path(@family, tab: "automations", edit_automation_rule_id: rule.id, execution_filter: active_execution_filter), class: "cta-secondary" %>
+              <%= button_to "Delete", family_automation_rule_path(@family, rule), method: :delete, params: { execution_filter: active_execution_filter }, class: "cta-secondary cursor-pointer", form: { data: { turbo_confirm: "Delete this automation rule?" } } %>
             </div>
           </article>
         <% end %>
@@ -40,12 +42,67 @@
         </div>
       <% end %>
     </div>
+
+    <div class="mt-8">
+      <p class="label-kicker">Execution log</p>
+      <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]">Recent executions</h3>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <% automation_execution_filter_options.each do |label, value| %>
+          <% active = active_execution_filter == value %>
+          <%= link_to label, automation_execution_filter_href(@family, value), class: active ? "filter-chip active" : "filter-chip" %>
+        <% end %>
+      </div>
+      <div class="entity-list mt-4">
+        <% if @recent_automation_executions.present? %>
+          <% @recent_automation_executions.each do |execution| %>
+            <% source_message = automation_execution_source_message(execution) %>
+            <% entity_href = automation_execution_entity_href(execution) %>
+            <% source_href = automation_execution_source_href(execution) %>
+            <article class="entity-card">
+              <p class="label-kicker"><%= execution.action_type %></p>
+              <h4 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-xl font-semibold text-[var(--ink)]"><%= execution.automation_rule.name %></h4>
+              <div class="meta-row mt-4">
+                <span class="meta-pill"><%= l(execution.created_at, format: :short) %></span>
+                <% if execution.created_entity_type.present? %>
+                  <% if entity_href.present? %>
+                    <%= link_to "#{execution.created_entity_type}##{execution.created_entity_id}", entity_href, class: "meta-pill" %>
+                  <% else %>
+                    <span class="meta-pill"><%= execution.created_entity_type %>#<%= execution.created_entity_id %></span>
+                  <% end %>
+                <% end %>
+              </div>
+              <% if source_message.present? %>
+                <p class="automation-trace-copy mt-4">
+                  Source message:
+                  <% if source_href.present? %>
+                    <%= link_to truncate(source_message.content, length: 220), source_href, class: "inline-link" %>
+                  <% else %>
+                    <%= truncate(source_message.content, length: 220) %>
+                  <% end %>
+                </p>
+              <% elsif execution.source_type.present? || execution.source_id.present? %>
+                <p class="automation-trace-copy mt-4">Source: <%= execution.source_type %>#<%= execution.source_id %></p>
+              <% else %>
+                <p class="automation-trace-copy mt-4">Source: scheduled/manual execution without chat source.</p>
+              <% end %>
+              <div class="mt-4 flex flex-wrap gap-3">
+                <%= button_to(execution.automation_rule.active? ? "Disable rule" : "Enable rule", toggle_active_automation_rule_path(execution.automation_rule), method: :patch, params: { execution_filter: active_execution_filter }, class: "cta-secondary cursor-pointer") %>
+              </div>
+            </article>
+          <% end %>
+        <% else %>
+          <div class="empty-state">
+            Тут буде видно останні спрацювання automation rules і з якого джерела вони були запущені.
+          </div>
+        <% end %>
+      </div>
+    </div>
   </section>
 
   <aside class="workspace-sidebar">
     <div class="form-panel">
-      <p class="label-kicker">New automation</p>
-      <h2 class="entity-title text-2xl">Створити правило</h2>
+      <p class="label-kicker"><%= @automation_rule_form.persisted? ? "Edit automation" : "New automation" %></p>
+      <h2 class="entity-title text-2xl"><%= @automation_rule_form.persisted? ? "Редагувати правило" : "Створити правило" %></h2>
       <div class="mt-6">
         <%= render "automation_rules/form", family: @family, automation_rule: @automation_rule_form, active_tab: @active_family_tab %>
       </div>

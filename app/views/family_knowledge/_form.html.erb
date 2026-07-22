@@ -1,5 +1,5 @@
 <% active_tab = local_assigns.fetch(:active_tab, "knowledge") %>
-<%= form_with(model: family_knowledge, url: family_family_knowledge_index_path(family), class: "space-y-5") do |form| %>
+<%= form_with(model: family_knowledge, url: family_knowledge.persisted? ? family_family_knowledge_path(family, family_knowledge) : family_family_knowledge_index_path(family), class: "space-y-5") do |form| %>
   <%= hidden_field_tag :return_tab, active_tab %>
   <% if family_knowledge.errors.any? %>
     <div class="error-box">
@@ -34,6 +34,9 @@
   </div>
 
   <div class="flex flex-wrap gap-3">
-    <%= form.submit "Додати knowledge", class: "cta-primary cursor-pointer" %>
+    <%= form.submit(family_knowledge.persisted? ? "Оновити knowledge" : "Додати knowledge", class: "cta-primary cursor-pointer") %>
+    <% if family_knowledge.persisted? %>
+      <%= link_to "Скасувати", family_tab_href(family, "knowledge"), class: "cta-secondary" %>
+    <% end %>
   </div>
 <% end %>

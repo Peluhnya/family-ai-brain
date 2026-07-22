@@ -11,12 +11,16 @@
     <div class="entity-list mt-6">
       <% if @family_knowledge_items.any? %>
         <% @family_knowledge_items.each do |item| %>
-          <article class="entity-card">
+          <article class="entity-card" id="<%= dom_id(item) %>">
             <p class="label-kicker"><%= item.key %></p>
             <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= item.value %></h3>
             <div class="meta-row mt-4">
               <span class="meta-pill">source: <%= item.source.presence || "unknown" %></span>
               <span class="meta-pill">confidence: <%= format("%.1f", item.confidence) %></span>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <%= link_to "Edit", tab_family_path(@family, tab: "knowledge", edit_family_knowledge_id: item.id), class: "cta-secondary" %>
+              <%= button_to "Delete", family_family_knowledge_path(@family, item), method: :delete, class: "cta-secondary cursor-pointer", form: { data: { turbo_confirm: "Delete this knowledge item?" } } %>
             </div>
           </article>
         <% end %>
@@ -30,8 +34,8 @@
 
   <aside class="workspace-sidebar">
     <div class="form-panel">
-      <p class="label-kicker">New knowledge</p>
-      <h2 class="entity-title text-2xl">Додати knowledge</h2>
+      <p class="label-kicker"><%= @family_knowledge_form.persisted? ? "Edit knowledge" : "New knowledge" %></p>
+      <h2 class="entity-title text-2xl"><%= @family_knowledge_form.persisted? ? "Редагувати knowledge" : "Додати knowledge" %></h2>
       <div class="mt-6">
         <%= render "family_knowledge/form", family: @family, family_knowledge: @family_knowledge_form, active_tab: @active_family_tab %>
       </div>

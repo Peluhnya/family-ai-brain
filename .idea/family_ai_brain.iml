@@ -95,6 +95,7 @@
     <orderEntry type="library" scope="PROVIDED" name="minitest (v6.0.2, asdf: 4.0.1) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="msgpack (v1.8.0, asdf: 4.0.1) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="multipart-post (v2.4.1, asdf: 4.0.1) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="neighbor (v0.6.0, asdf: 4.0.1) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="net-http (v0.9.1, asdf: 4.0.1) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="net-imap (v0.6.3, asdf: 4.0.1) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="net-pop (v0.1.2, asdf: 4.0.1) [gem]" level="application" />

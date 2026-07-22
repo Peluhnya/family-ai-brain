@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_30_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_30_210539) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -35,14 +35,41 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_150000) do
     t.text "content", null: false
     t.datetime "created_at", null: false
     t.bigint "family_id", null: false
+    t.integer "input_tokens"
+    t.jsonb "llm_metadata"
     t.string "model"
+    t.integer "output_tokens"
+    t.string "prompt_version"
     t.string "role", null: false
+    t.integer "short_term_message_count"
+    t.integer "short_term_tokens"
+    t.integer "system_prompt_chars"
+    t.integer "system_prompt_tokens"
     t.integer "tokens"
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.integer "user_message_tokens"
     t.index ["family_id", "created_at"], name: "index_ai_interactions_on_family_id_and_created_at"
     t.index ["family_id"], name: "index_ai_interactions_on_family_id"
     t.index ["user_id"], name: "index_ai_interactions_on_user_id"
+  end
+
+  create_table "automation_rule_executions", force: :cascade do |t|
+    t.string "action_type", null: false
+    t.bigint "automation_rule_id", null: false
+    t.string "context_digest"
+    t.datetime "created_at", null: false
+    t.bigint "created_entity_id"
+    t.string "created_entity_type"
+    t.bigint "family_id", null: false
+    t.bigint "source_id"
+    t.string "source_type"
+    t.string "status", default: "completed", null: false
+    t.datetime "updated_at", null: false
+    t.index ["automation_rule_id", "source_type", "source_id", "action_type"], name: "idx_automation_rule_executions_uniqueness", unique: true, where: "((source_type IS NOT NULL) AND (source_id IS NOT NULL))"
+    t.index ["automation_rule_id"], name: "index_automation_rule_executions_on_automation_rule_id"
+    t.index ["family_id", "created_at"], name: "index_automation_rule_executions_on_family_id_and_created_at"
+    t.index ["family_id"], name: "index_automation_rule_executions_on_family_id"
   end
 
   create_table "automation_rules", force: :cascade do |t|
@@ -227,6 +254,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_150000) do
   add_foreign_key "accounts", "users"
   add_foreign_key "ai_interactions", "families"
   add_foreign_key "ai_interactions", "users"
+  add_foreign_key "automation_rule_executions", "automation_rules"
+  add_foreign_key "automation_rule_executions", "families"
   add_foreign_key "automation_rules", "families"
   add_foreign_key "calendar_connections", "families"
   add_foreign_key "documents", "families"
