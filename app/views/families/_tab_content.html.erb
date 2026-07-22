@@ -1,0 +1,4 @@
+<%= turbo_frame_tag "family_tab_content" do %>
+  <%= render "families/tab_nav", family:, active_tab: %>
+  <%= render "families/tabs/#{active_tab}" %>
+<% end %>

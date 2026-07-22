@@ -1,0 +1,83 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "Family AI Brain — головна" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e11]:
+          - strong [ref=e12]: Family
+          - generic [ref=e13]: Brain
+      - navigation "Головна навігація" [ref=e14]:
+        - link "Можливості" [ref=e15] [cursor=pointer]:
+          - /url: /#product
+        - link "Приватність" [ref=e16] [cursor=pointer]:
+          - /url: /#privacy
+      - generic [ref=e17]:
+        - link "Увійти" [ref=e18] [cursor=pointer]:
+          - /url: /users/sign_in
+        - link "Спробувати" [ref=e19] [cursor=pointer]:
+          - /url: /users/sign_up
+  - main [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - paragraph [ref=e27]: Один простір для всієї сім’ї
+          - heading "Усе важливе. Без зайвого шуму." [level=1] [ref=e32]:
+            - text: Усе важливе.
+            - generic [ref=e33]: Без зайвого шуму.
+          - paragraph [ref=e34]: Family Brain об’єднує розмови, плани й пам’ять сім’ї — та непомітно бере рутину на себе.
+          - generic [ref=e35]:
+            - link "Створити свій простір" [ref=e36] [cursor=pointer]:
+              - /url: /users/sign_up
+            - link "У мене вже є акаунт" [ref=e40] [cursor=pointer]:
+              - /url: /users/sign_in
+          - paragraph [ref=e41]: Приватність закладена в основу продукту
+        - generic "Попередній перегляд Family Brain" [ref=e43]:
+          - generic [ref=e45]:
+            - generic [ref=e46]: Family Brain
+            - generic [ref=e51]:
+              - complementary [ref=e52]:
+                - generic [ref=e53]:
+                  - generic [ref=e54]: F
+                  - text: Наша сім’я
+                - generic [ref=e55]: Чат
+                - generic [ref=e59]: Задачі
+                - generic [ref=e63]: Події
+                - generic [ref=e68]: Нагадування
+                - generic [ref=e72]: Документи
+                - generic [ref=e76]: Знання
+              - generic [ref=e80]:
+                - generic [ref=e81]:
+                  - generic [ref=e82]:
+                    - paragraph [ref=e83]: Сьогодні
+                    - heading "Доброго ранку, родино" [level=2] [ref=e84]
+                  - generic [ref=e85]: Усе гаразд
+                - generic [ref=e86]:
+                  - generic [ref=e87]: Що в нас заплановано на суботу?
+                  - generic [ref=e88]: О 10:30 — заняття Марти, а після 14:00 ви всі вільні. Погода обіцяє бути теплою. Запланувати пікнік?
+                  - generic [ref=e89]:
+                    - generic [ref=e90]: Запланувати
+                    - generic [ref=e91]: Показати календар
+                - generic [ref=e92]: Запитайте про справи, плани або події…
+      - generic [ref=e97]:
+        - generic [ref=e98]:
+          - paragraph [ref=e99]: Створено для реального життя
+          - heading "Допомога, яка відчуває контекст." [level=2] [ref=e100]
+        - generic [ref=e101]:
+          - article [ref=e102]:
+            - heading "Пам’ятає важливе" [level=3] [ref=e107]
+            - paragraph [ref=e108]: Домовленості, вподобання й сімейний контекст залишаються поруч, коли вони справді потрібні.
+          - article [ref=e109]:
+            - heading "Діє непомітно" [level=3] [ref=e113]
+            - paragraph [ref=e114]: Нагадування, задачі й повторювані справи виконуються у фоні, не вимагаючи постійної уваги.
+          - article [ref=e115]:
+            - heading "Тримає всіх у ритмі" [level=3] [ref=e121]
+            - paragraph [ref=e122]: Події, плани та відповідальність зібрані в одному спокійному й зрозумілому просторі.
+      - generic [ref=e124]:
+        - generic [ref=e125]:
+          - paragraph [ref=e126]: Privacy by design
+          - heading "Сімейне залишається сімейним." [level=2] [ref=e130]
+          - paragraph [ref=e131]: Ваш контекст не є рекламним профілем. Ми будуємо продукт навколо контролю, прозорості та європейських вимог до приватності.
+        - generic [ref=e132]:
+          - generic [ref=e133]: Контроль над сімейними даними
+          - generic [ref=e137]: Захищене зберігання чутливої інформації
+          - generic [ref=e141]: Зрозумілий контекст без прихованої магії
