@@ -91,6 +91,7 @@ module FamilyBrain
       assert_equal 1, @family.tasks.count
       assert_equal 1, @family.reminders.count
       assert_equal 2, @family.ai_effects.count
+      assert @family.ai_effects.none? { |effect| effect.details.present? }
       assert_not_equal "Створити нагадування", @family.tasks.last.title
     end
 

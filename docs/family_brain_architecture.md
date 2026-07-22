@@ -54,6 +54,27 @@ The chat action path below is now implemented. A turn is still executed in an
 Active Job and streamed with Turbo, but planning and tool execution finish
 before the assistant is allowed to confirm a database change.
 
+`ai_effects` is a short-lived execution receipt, not a permanent analytics log.
+Successful and skipped effects contain only status, fingerprint, entity link,
+and timestamps; their `details` payload remains empty. `PruneAiEffectsJob` runs
+daily through Solid Queue and removes completed, skipped, and stale pending
+records after 30 days, while failed effects are retained for 90 days. The
+cleanup lookup is covered by the `status, created_at` index. Retention windows
+and batch size can be configured with
+`AI_EFFECT_ROUTINE_RETENTION_DAYS`, `AI_EFFECT_FAILURE_RETENTION_DAYS`, and
+`AI_EFFECT_PRUNE_BATCH_SIZE`.
+
+Conversation language handling is independent from business entities. The
+current message has priority, recent user messages provide context for short
+follow-ups, and `family.locale` is the final fallback. Supported locale packs
+are `uk-UA`, `de-DE`, `en-GB`, and `en-US`. `TemporalParser` converts localized
+months, weekdays, relative dates, clocks, and ranges into the same ISO 8601
+tool contract. Planner output, confirmations, Turbo progress statuses, and
+memory extraction use the resolved conversation language. Numeric dates use
+the regional order from the locale, so British and American English remain
+distinct. The resolved locale is passed through the orchestration pipeline so
+the same turn does not repeat language-context database queries.
+
 ### 1. `FamilyBrain::Orchestrator`
 
 Single entry point for a chat turn.

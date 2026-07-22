@@ -2,6 +2,40 @@ module FamilyBrain
   module GroundedExtraction
     MIN_CHARS = 8
     MIN_WORDS = 2
+    REMINDER_PATTERN = %r{
+      \b(?:нагад(?:ай|ати|ування|уванням)?|не\s+забуд|
+      remind(?:er)?|remember\s+to|dont\s+forget|
+      erinner(?:e|n|ung)?|nicht\s+vergessen)\b
+    }ixu
+    ACTIONABLE_PATTERN = %r{
+      \b(?:треба|потрібно|необхідно|купити|оплатити|проплатити|сплатити|подзвонити|зробити|записати|замовити|відправити|підготувати|
+      need\s+to|have\s+to|must|buy|pay|call|book|order|send|prepare|
+      muss|müssen|soll|brauche|kaufen|bezahlen|zahlen|anrufen|machen|buchen|bestellen|schicken|vorbereiten)\b
+    }ixu
+    ONLY_REMINDER_PATTERN = %r{
+      (?:\b(?:лише|тільки)\s+(?:створити\s+)?нагадування\b|
+      \bonly\s+(?:create\s+|set\s+)?(?:a\s+)?reminder\b|
+      \bnur\s+(?:eine\s+)?erinnerung\b)
+    }ixu
+    ONLY_TASK_PATTERN = %r{
+      (?:\b(?:лише|тільки)\s+(?:створити\s+)?задач|\bonly\s+(?:create\s+)?(?:a\s+)?(?:task|todo)\b|
+      \bnur\s+(?:eine\s+)?aufgabe\b)
+    }ixu
+    NO_REMINDER_PATTERN = %r{
+      (?:\bбез\s+нагадування\b|\bне\s+нагадуй\b|\bнагадування\s+не\s+потрібне\b|
+      \bwithout\s+(?:a\s+)?reminder\b|\bdont\s+remind\b|
+      \bohne\s+erinnerung\b|\berinnere\s+mich\s+nicht\b|\bkeine\s+erinnerung\b)
+    }ixu
+    FUTURE_PATTERN = %r{
+      \b(?:завтра|післязавтра|буде|будемо|піде|поїде|поїдемо|планує|збираєть|має\s+відпустку|
+      tomorrow|day\s+after\s+tomorrow|will|going\s+to|plan(?:s|ning)?|vacation\s+starts?|
+      morgen|übermorgen|uebermorgen|wird|werden|plan(?:e|t|en)|vorhab(?:e|en)|urlaub)\b
+    }ixu
+    DURABLE_TEMPORAL_PATTERN = %r{
+      \b(?:завжди|зазвичай|щороку|кожн(?:ого|ої|і|у)|народив|народила|день\s+народження|
+      always|usually|every|annually|born|birthday|
+      immer|normalerweise|jed(?:e|er|es|en)|jährlich|jaehrlich|geboren|geburtstag)\b
+    }ixu
 
     module_function
 
@@ -36,13 +70,37 @@ module FamilyBrain
       missing_tokens.empty? || (title_tokens.size >= 3 && missing_tokens.size == 1)
     end
 
-    def temporal_reference?(text)
-      normalized = text.to_s.downcase.tr("’ʼ`'", "").gsub(/пятгниц/u, "пятниц")
-      normalized.match?(%r{(\b\d{1,2}:\d{2}\b|\b\d{1,2}[.\-/]\d{1,2}(?:[.\-/]\d{2,4})?\b|\b\d{1,2}\s+(?:січня|лютого|березня|квітня|травня|червня|липня|серпня|вересня|жовтня|листопада|грудня)\b|\bо\s*\d{1,2}\b|сьогодні|завтра|післязавтра|today|tomorrow|понеділ|вівтор|серед|четвер|пятниц|friday|saturday|sunday|monday|tuesday|wednesday|thursday|субот|неділ)}i)
+    def temporal_reference?(text, locale: nil, reference_time: Time.current, timezone: nil)
+      FamilyBrain::TemporalParser.new(reference_time: reference_time, timezone: timezone, locale: locale)
+        .temporal_reference?(text)
     end
 
     def reminder_intent?(text)
-      text.to_s.match?(/\b(нагад(?:ай|ати|ування|уванням)?|не забуд|remind|remember)\b/i)
+      normalized_for_intent(text).match?(REMINDER_PATTERN)
+    end
+
+    def actionable?(text)
+      normalized_for_intent(text).match?(ACTIONABLE_PATTERN)
+    end
+
+    def only_reminder?(text)
+      normalized_for_intent(text).match?(ONLY_REMINDER_PATTERN)
+    end
+
+    def only_task?(text)
+      normalized_for_intent(text).match?(ONLY_TASK_PATTERN)
+    end
+
+    def no_reminder?(text)
+      normalized_for_intent(text).match?(NO_REMINDER_PATTERN)
+    end
+
+    def future_intent?(text)
+      normalized_for_intent(text).match?(FUTURE_PATTERN)
+    end
+
+    def durable_temporal_fact?(text)
+      normalized_for_intent(text).match?(DURABLE_TEMPORAL_PATTERN)
     end
 
     def normalize_text(text)
@@ -60,6 +118,11 @@ module FamilyBrain
     def translation_artifact?(text)
       text.to_s.match?(/\([A-Za-z][^)]+\)/)
     end
+
+    def normalized_for_intent(text)
+      text.to_s.downcase.tr("’ʼ`'", "").gsub(/пятгниц/u, "пятниц")
+    end
+    private_class_method :normalized_for_intent
 
     def token_equivalent?(left, right)
       return true if left == right

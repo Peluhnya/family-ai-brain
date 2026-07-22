@@ -27,6 +27,7 @@ module FamilyBrain
     def initialize(family:, text:)
       @family = family
       @text = text.to_s.strip
+      @locale = FamilyBrain::LanguageResolver.resolve(text: @text, fallback: family.locale)
     end
 
     def call
@@ -55,7 +56,7 @@ module FamilyBrain
         Do not invent events from summaries or suggestions. If date/time intent is unclear, return an empty list.
         For each event, include an evidence field with the exact short quote from the user's text that proves both the event and its timing.
         Return up to 3 events.
-        Use Ukrainian for title and location.
+        Use #{FamilyBrain::LocaleCatalog.language_name(@locale)} (#{@locale}) for title and location.
         source should usually be "ai_chat".
         start_in_days must be 0 if the event is today or timing is immediate, 1 for tomorrow, etc.
         duration_hours must be 1 if no duration is known.

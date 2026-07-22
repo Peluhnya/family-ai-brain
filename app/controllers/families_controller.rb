@@ -18,7 +18,10 @@ class FamiliesController < ApplicationController
   end
 
   def new
-    @family = @account.families.new(timezone: "Europe/Berlin", locale: I18n.locale.to_s)
+    @family = @account.families.new(
+      timezone: "Europe/Berlin",
+      locale: FamilyBrain::LocaleCatalog.normalize(I18n.locale) || FamilyBrain::LocaleCatalog::DEFAULT_LOCALE
+    )
   end
 
   def edit

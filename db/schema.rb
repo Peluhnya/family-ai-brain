@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_223000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -48,6 +48,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_220000) do
     t.index ["family_id"], name: "index_ai_effects_on_family_id"
     t.index ["source_ai_interaction_id", "action_fingerprint"], name: "index_ai_effects_on_source_and_fingerprint", unique: true
     t.index ["source_ai_interaction_id"], name: "index_ai_effects_on_source_ai_interaction_id"
+    t.index ["status", "created_at"], name: "index_ai_effects_on_status_and_created_at"
   end
 
   create_table "ai_interactions", force: :cascade do |t|

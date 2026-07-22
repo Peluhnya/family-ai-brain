@@ -258,6 +258,15 @@ Memory post-processing включає:
 - `LifeLogSyncService`
 - `KnowledgeSyncService`
 
+Мовний шар:
+
+- `LanguageResolver` визначає мову поточної репліки, потім дивиться на останній user-контекст і лише після цього використовує `family.locale`
+- підтримувані locale: `uk-UA`, `de-DE`, `en-GB`, `en-US`
+- `TemporalParser` перетворює українські, німецькі та англійські природні дати на єдиний ISO 8601 контракт
+- locale packs ізольовано містять місяці, weekdays, relative dates, clock expressions та range connectors
+- Planner, ToolExecutor, Turbo-статуси, fallback-відповіді та memory extraction використовують визначену мову
+- неоднозначні числові дати враховують регіон: `en-GB` і `en-US` мають різний порядок дня та місяця
+
 Контракт пам’яті:
 
 - майбутні відпустки, табори, подорожі та зустрічі — `events`

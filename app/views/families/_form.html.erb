@@ -22,7 +22,18 @@
     </div>
     <div>
       <%= form.label :locale, "Locale", class: "form-label" %>
-      <%= form.text_field :locale, class: "form-input", placeholder: "uk" %>
+      <%= form.select :locale,
+        options_for_select(
+          [
+            [ "Українська", "uk-UA" ],
+            [ "Deutsch", "de-DE" ],
+            [ "English (UK)", "en-GB" ],
+            [ "English (US)", "en-US" ]
+          ],
+          FamilyBrain::LocaleCatalog.normalize(family.locale) || FamilyBrain::LocaleCatalog::DEFAULT_LOCALE
+        ),
+        {},
+        class: "form-input" %>
     </div>
   </div>
 

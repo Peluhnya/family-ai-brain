@@ -29,7 +29,12 @@ module FamilyBrain
       @source = source
       @zone = ActiveSupport::TimeZone[family.timezone.presence] || Time.zone
       @now = now.in_time_zone(@zone)
-      @date_parser = FamilyBrain::UkrainianDateParser.new(reference_time: @now, timezone: @zone.tzinfo.name)
+      @locale = FamilyBrain::LanguageResolver.resolve(text: @text, fallback: family.locale)
+      @date_parser = FamilyBrain::TemporalParser.new(
+        reference_time: @now,
+        timezone: @zone.tzinfo.name,
+        locale: @locale
+      )
       @llm_client = llm_client
       @embedding_service = embedding_service
     end
@@ -57,10 +62,10 @@ module FamilyBrain
         Extract only stable semantic family facts explicitly stated by the user.
         Stable facts include durable preferences, relationships, recurring rules, important attributes and reusable constraints.
         Do not extract future or past calendar occurrences, vacations, camps, trips, appointments, deadlines, tasks, reminders, one-off experiences, or assistant suggestions.
-        A completed experience belongs to episodic memory. Only a durable conclusion explicitly stated by the user belongs here, for example "ми любимо ходити в гори".
+        A completed experience belongs to episodic memory. Only a durable conclusion explicitly stated by the user belongs here, for example "our family enjoys hiking in the mountains".
         Return up to 5 facts.
         Keys must be snake_case and reusable.
-        Values must be concise factual statements in Ukrainian.
+        Values must be concise factual statements in #{FamilyBrain::LocaleCatalog.language_name(@locale)} (#{@locale}).
         Evidence must be an exact short quote from the supplied text. Do not paraphrase evidence.
         Confidence must be between 0.0 and 1.0.
         Source should be "#{@source}" unless the text clearly indicates another source.
@@ -98,8 +103,13 @@ module FamilyBrain
     end
 
     def time_bounded_occurrence?(evidence)
-      return false unless FamilyBrain::GroundedExtraction.temporal_reference?(evidence)
-      return false if evidence.match?(/\b(завжди|зазвичай|щороку|кожн(?:ого|ої|і|у)|народив|народила|день народження)\b/i)
+      return false unless FamilyBrain::GroundedExtraction.temporal_reference?(
+        evidence,
+        locale: @locale,
+        reference_time: @now,
+        timezone: @zone.tzinfo.name
+      )
+      return false if FamilyBrain::GroundedExtraction.durable_temporal_fact?(evidence)
 
       @date_parser.parse_range(evidence).present? || @date_parser.parse_datetime(evidence, default_hour: 0).present?
     end

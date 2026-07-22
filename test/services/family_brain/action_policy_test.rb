@@ -37,6 +37,29 @@ module FamilyBrain
       assert_equal [ "create_reminder" ], result.map { |item| item["kind"] }
     end
 
+    test "respects German only-reminder intent" do
+      @family.update!(locale: "de-DE")
+      actions = [
+        action(kind: "create_task", title: "Kredit bezahlen", due_at: "2026-07-24T18:00:00+02:00"),
+        action(kind: "create_reminder", title: "Kredit bezahlen", trigger_at: "2026-07-24T10:00:00+02:00")
+      ]
+
+      result = policy("Nein, nur eine Erinnerung").apply(actions)
+
+      assert_equal [ "create_reminder" ], result.map { |item| item["kind"] }
+    end
+
+    test "adds a task for an actionable English reminder" do
+      @family.update!(locale: "en-GB")
+      evidence = "Remind me tomorrow to pay the loan"
+      actions = [ action(kind: "create_reminder", title: "Pay the loan", evidence: [ evidence ]) ]
+
+      result = policy(evidence).apply(actions)
+
+      assert_equal %w[create_reminder create_task], result.map { |item| item["kind"] }
+      assert_equal "2026-07-23T09:00:00+02:00", result.first["trigger_at"]
+    end
+
     private
 
     def policy(text)

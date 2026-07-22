@@ -19,13 +19,23 @@ module FamilyBrain
       end
     end
 
-    def initialize(family:, user_message:, source_user_text:, now: Time.current)
+    def initialize(family:, user_message:, source_user_text:, now: Time.current, locale: nil)
       @family = family
       @user_message = user_message
       @source_user_text = source_user_text.to_s
       @zone = ActiveSupport::TimeZone[family.timezone.presence] || Time.zone
       @now = now.in_time_zone(@zone)
-      @date_parser = FamilyBrain::UkrainianDateParser.new(reference_time: @now, timezone: @zone.tzinfo.name)
+      @locale = FamilyBrain::LocaleCatalog.normalize(locale) ||
+        FamilyBrain::LanguageResolver.for_message(
+          family: family,
+          message: @user_message,
+          context: @source_user_text
+        )
+      @date_parser = FamilyBrain::TemporalParser.new(
+        reference_time: @now,
+        timezone: @zone.tzinfo.name,
+        locale: @locale
+      )
     end
 
     def call(actions)
@@ -76,7 +86,7 @@ module FamilyBrain
       validate_title!(action)
       due_at = parse_time(action["due_at"], fallback_text: evidence_text(action), default_hour: 18, honor_fallback_clock: false)
       existing = find_matching_task(action["title"])
-      return [ existing, "skipped", "Відповідна активна задача вже існує." ] if existing
+      return [ existing, "skipped", action_message(:task_exists) ] if existing
 
       task = @family.tasks.create!(
         title: action["title"].strip,
@@ -86,7 +96,7 @@ module FamilyBrain
         status: "pending",
         priority: action["priority"].to_i.clamp(1, 5)
       )
-      [ task, "created", "Задачу створено." ]
+      [ task, "created", action_message(:task_created) ]
     end
 
     def update_task(action)
@@ -97,19 +107,19 @@ module FamilyBrain
       attributes[:assigned_to] = resolve_assignee_id(action["assignee_name"]) if changed?(action, "assignee_name")
       attributes[:priority] = action["priority"].to_i.clamp(1, 5) if changed?(action, "priority")
       attributes[:due_at] = parse_time(action["due_at"], fallback_text: evidence_text(action), default_hour: 18, honor_fallback_clock: false) if changed?(action, "due_at")
-      return [ task, "skipped", "У задачі немає нових даних для оновлення." ] if attributes.empty?
+      return [ task, "skipped", action_message(:task_unchanged) ] if attributes.empty?
 
       task.update!(attributes)
-      [ task, "updated", "Задачу оновлено." ]
+      [ task, "updated", action_message(:task_updated) ]
     end
 
     def create_reminder(action)
       validate_title!(action)
       trigger_at = parse_time(action["trigger_at"], fallback_text: evidence_text(action), default_hour: 9)
-      raise ArgumentError, "Не вдалося визначити час нагадування." unless trigger_at
+      raise ArgumentError, error_message(:reminder_time_missing) unless trigger_at
 
       existing = find_matching_reminder(action["title"], trigger_at)
-      return [ existing, "skipped", "Відповідне активне нагадування вже існує." ] if existing
+      return [ existing, "skipped", action_message(:reminder_exists) ] if existing
 
       reminder = @family.reminders.create!(
         title: action["title"].strip,
@@ -117,7 +127,7 @@ module FamilyBrain
         channel: normalize_channel(action["channel"]),
         status: "pending"
       )
-      [ reminder, "created", "Нагадування створено." ]
+      [ reminder, "created", action_message(:reminder_created) ]
     end
 
     def update_reminder(action)
@@ -126,19 +136,19 @@ module FamilyBrain
       attributes[:title] = action["title"].strip if changed?(action, "title") && action["title"].present?
       attributes[:trigger_at] = parse_time(action["trigger_at"], fallback_text: evidence_text(action), default_hour: 9) if changed?(action, "trigger_at")
       attributes[:channel] = normalize_channel(action["channel"]) if changed?(action, "channel")
-      return [ reminder, "skipped", "У нагадуванні немає нових даних для оновлення." ] if attributes.compact.empty?
+      return [ reminder, "skipped", action_message(:reminder_unchanged) ] if attributes.compact.empty?
 
       reminder.update!(attributes.compact)
-      [ reminder, "updated", "Нагадування оновлено." ]
+      [ reminder, "updated", action_message(:reminder_updated) ]
     end
 
     def create_event(action)
       validate_title!(action)
       start_at, end_at = event_times(action)
-      raise ArgumentError, "Не вдалося визначити початок події." unless start_at
+      raise ArgumentError, error_message(:event_start_missing) unless start_at
 
       existing = find_matching_event(action["title"], start_at)
-      return [ existing, "skipped", "Відповідна подія вже існує." ] if existing
+      return [ existing, "skipped", action_message(:event_exists) ] if existing
 
       event = @family.events.create!(
         title: action["title"].strip,
@@ -148,7 +158,7 @@ module FamilyBrain
         end_time: end_at,
         all_day: action["all_day"]
       )
-      [ event, "created", "Подію створено." ]
+      [ event, "created", action_message(:event_created) ]
     end
 
     def update_event(action)
@@ -162,10 +172,10 @@ module FamilyBrain
         attributes[:end_time] = end_at if end_at
         attributes[:all_day] = action["all_day"] if changed?(action, "all_day")
       end
-      return [ event, "skipped", "У події немає нових даних для оновлення." ] if attributes.empty?
+      return [ event, "skipped", action_message(:event_unchanged) ] if attributes.empty?
 
       event.update!(attributes)
-      [ event, "updated", "Подію оновлено." ]
+      [ event, "updated", action_message(:event_updated) ]
     end
 
     def event_times(action, existing_event: nil)
@@ -187,7 +197,7 @@ module FamilyBrain
       end_at ||= all_day ? start_at + 1.day : start_at + 1.hour
       end_at = end_at.in_time_zone(@zone).beginning_of_day if all_day
       end_at += 1.day if all_day && end_at <= start_at
-      raise ArgumentError, "Кінець події має бути після початку." if end_at <= start_at
+      raise ArgumentError, error_message(:event_end_invalid) if end_at <= start_at
 
       [ start_at, end_at ]
     end
@@ -199,16 +209,16 @@ module FamilyBrain
 
     def validate_title!(action)
       title = action["title"].to_s.strip
-      raise ArgumentError, "Назва дії порожня." unless FamilyBrain::GroundedExtraction.meaningful_phrase?(title)
-      raise ArgumentError, "Назва дії не підтверджена повідомленням користувача." unless FamilyBrain::GroundedExtraction.title_grounded_in_evidence?(title, evidence_text(action))
+      raise ArgumentError, error_message(:title_blank) unless FamilyBrain::GroundedExtraction.meaningful_phrase?(title)
+      raise ArgumentError, error_message(:title_unverified) unless FamilyBrain::GroundedExtraction.title_grounded_in_evidence?(title, evidence_text(action))
     end
 
     def validate_evidence!(action)
       quotes = Array(action["evidence"]).map(&:to_s).reject(&:blank?)
-      raise ArgumentError, "Дія не має підтвердження в повідомленні користувача." if quotes.empty?
+      raise ArgumentError, error_message(:evidence_missing) if quotes.empty?
 
       missing_quote = quotes.find { |quote| !FamilyBrain::GroundedExtraction.evidence_present?(@source_user_text, quote) }
-      raise ArgumentError, "Підтвердження дії відсутнє в повідомленнях користувача." if missing_quote
+      raise ArgumentError, error_message(:evidence_unverified) if missing_quote
     end
 
     def evidence_text(action)
@@ -272,7 +282,7 @@ module FamilyBrain
         status: status,
         entity_type: entity&.class&.name,
         entity_id: entity&.id,
-        details: { message: message }.to_json,
+        details: nil,
         error_message: nil
       )
     end
@@ -287,7 +297,7 @@ module FamilyBrain
     def result_from_existing_effect(effect, action)
       entity = effect.entity
       status = effect.status == "completed" ? "already_completed" : "skipped"
-      build_result(action, entity:, status:, message: "Цю дію вже було оброблено.")
+      build_result(action, entity:, status:, message: action_message(:already_processed))
     end
 
     def build_result(action, entity:, status:, message:)
@@ -299,6 +309,14 @@ module FamilyBrain
         title: entity.respond_to?(:title) ? entity.title : action["title"].to_s,
         message: message
       )
+    end
+
+    def action_message(key)
+      FamilyBrain::LocaleCatalog.action_copy(@locale, key)
+    end
+
+    def error_message(key)
+      FamilyBrain::LocaleCatalog.error_copy(@locale, key)
     end
   end
 end

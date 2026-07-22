@@ -132,5 +132,52 @@ module FamilyBrain
       assert_empty result
       assert_empty @family.life_logs
     end
+
+    test "rejects a future English vacation from semantic knowledge" do
+      text = "We have a family holiday from 10 to 24 August"
+      client = FakeStructuredLlmClient.new(
+        "facts" => [
+          {
+            "key" => "family_holiday",
+            "value" => "The family holiday runs from 10 to 24 August.",
+            "evidence" => text,
+            "confidence" => 0.9,
+            "source" => "chat:auto"
+          }
+        ]
+      )
+
+      result = KnowledgeSyncService.new(
+        family: @family,
+        text: text,
+        source: "chat:auto",
+        now: @now,
+        llm_client: client,
+        embedding_service: NullEmbeddingService
+      ).call
+
+      assert_empty result
+      assert_includes client.prompts.first, "British English (en-GB)"
+    end
+
+    test "rejects a future German experience from episodic memory" do
+      text = "Morgen werden wir in die Berge fahren"
+      client = FakeStructuredLlmClient.new(
+        "life_logs" => [
+          {
+            "event_type" => "Familienausflug",
+            "summary" => "Die Familie fuhr gemeinsam in die Berge",
+            "evidence" => text,
+            "importance" => 0.7,
+            "happened_at" => "2026-07-23T09:00:00+02:00"
+          }
+        ]
+      )
+
+      result = LifeLogSyncService.new(family: @family, text: text, now: @now, llm_client: client).call
+
+      assert_empty result
+      assert_includes client.prompts.first, "German (de-DE)"
+    end
   end
 end

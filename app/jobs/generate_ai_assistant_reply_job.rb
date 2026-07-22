@@ -21,9 +21,11 @@ class GenerateAiAssistantReplyJob < ApplicationJob
     end
 
     usage_metadata = (result[:usage_metadata] || {}).deep_merge(orchestrator: result[:orchestrator] || {})
+    locale = result.dig(:orchestrator, :response_locale) ||
+      FamilyBrain::LanguageResolver.for_message(family: family, message: user_message)
 
     assistant_message.update!(
-      content: result[:content].presence || streamed_content.presence || "Вибач, я не зміг сформувати відповідь.",
+      content: result[:content].presence || streamed_content.presence || FamilyBrain::LocaleCatalog.ui_copy(locale, :unable_to_respond),
       model: result[:model],
       tokens: result[:tokens],
       input_tokens: result[:input_tokens],
@@ -49,8 +51,17 @@ class GenerateAiAssistantReplyJob < ApplicationJob
     broadcast_interaction_update(family, assistant_message)
     MemoryProcessingJob.perform_later(family.id, user_message.id, assistant_message.id)
   rescue StandardError => e
+    locale = if family && user_message
+      FamilyBrain::LanguageResolver.for_message(family: family, message: user_message)
+    else
+      FamilyBrain::LocaleCatalog::DEFAULT_LOCALE
+    end
+    Rails.logger.error(
+      "generate_ai_assistant_reply_failed family_id=#{family&.id} interaction_id=#{assistant_message&.id} " \
+      "error=#{e.class}: #{e.message}"
+    )
     assistant_message&.update!(
-      content: "LLM request failed: #{e.message}",
+      content: FamilyBrain::LocaleCatalog.ui_copy(locale, :request_failed),
       model: "local-fallback",
       tokens: nil
     )

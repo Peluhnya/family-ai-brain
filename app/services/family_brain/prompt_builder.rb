@@ -10,9 +10,11 @@ module FamilyBrain
     TASK_LIMIT = 5
     AUTOMATION_LIMIT = 4
 
-    def initialize(family:, current_message:)
+    def initialize(family:, current_message:, response_locale: nil)
       @family = family
       @current_message = current_message
+      @response_locale = FamilyBrain::LocaleCatalog.normalize(response_locale) ||
+        FamilyBrain::LanguageResolver.for_message(family: family, message: current_message)
     end
 
     def system_prompt
@@ -129,7 +131,7 @@ module FamilyBrain
         sections = build_sections
         prompt = [
           %(You are the Family AI Brain for "#{@family.name}".),
-          "Reply in Ukrainian unless the user clearly writes in another language.",
+          "Reply in #{FamilyBrain::LocaleCatalog.language_name(@response_locale)} (#{@response_locale}). The current message language takes precedence over the family default.",
           "Be concise, practical, and action-oriented.",
           "Use only the provided family context. If data is missing, say so.",
           "Prefer checklists, next steps, reminders, or a short clarifying question.",

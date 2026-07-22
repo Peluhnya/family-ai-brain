@@ -1,11 +1,13 @@
 module FamilyBrain
   class ResponseFinalizer
-    def initialize(family:, user:, user_message:, plan:, tool_results:)
+    def initialize(family:, user:, user_message:, plan:, tool_results:, response_locale: nil)
       @family = family
       @user = user
       @user_message = user_message
       @plan = plan
       @tool_results = tool_results
+      @response_locale = FamilyBrain::LocaleCatalog.normalize(response_locale) ||
+        FamilyBrain::LanguageResolver.for_message(family: family, message: user_message)
     end
 
     def call(&block)
@@ -15,7 +17,8 @@ module FamilyBrain
         family: @family,
         user: @user,
         message: @user_message,
-        turn_execution_context: execution_context
+        turn_execution_context: execution_context,
+        response_locale: @response_locale
       ).call(&block)
 
       return response unless response[:model] == "local-fallback" && @tool_results.any?
@@ -56,7 +59,7 @@ module FamilyBrain
         - If an action failed, say briefly that it was not saved.
         - If a clarification question is provided below, ask it after summarizing any successful actions.
         - Do not expose internal ids, planner terminology, schemas or implementation details.
-        - Keep the answer concise and in Ukrainian.
+        - Keep the answer concise and in #{FamilyBrain::LocaleCatalog.language_name(@response_locale)} (#{@response_locale}).
 
         CLARIFICATION QUESTION
         #{@plan.clarification_question.presence || 'none'}
@@ -77,14 +80,18 @@ module FamilyBrain
     def deterministic_result_summary
       lines = @tool_results.map do |result|
         case result.status
-        when "created" then "Створено: #{result.title}."
-        when "updated" then "Оновлено: #{result.title}."
-        when "skipped", "already_completed" then "Вже існує: #{result.title}."
-        else "Не вдалося зберегти: #{result.title}."
+        when "created" then localized_result(:created, result.title)
+        when "updated" then localized_result(:updated, result.title)
+        when "skipped", "already_completed" then localized_result(:existing, result.title)
+        else localized_result(:failed, result.title)
         end
       end
       lines << @plan.clarification_question if @plan.clarification_required?
       lines.join("\n")
+    end
+
+    def localized_result(key, title)
+      "#{FamilyBrain::LocaleCatalog.copy(@response_locale, key)}: #{title}."
     end
   end
 end

@@ -25,6 +25,7 @@ module FamilyBrain
     def initialize(family:, text:)
       @family = family
       @text = text.to_s.strip
+      @locale = FamilyBrain::LanguageResolver.resolve(text: @text, fallback: family.locale)
     end
 
     def call
@@ -53,7 +54,7 @@ module FamilyBrain
         Do not invent reminders. If the user did not ask to be reminded, return an empty list.
         For each reminder, include an evidence field with the exact short quote from the user's text that proves it is a reminder request.
         Return up to 3 reminders.
-        Use Ukrainian for reminder titles.
+        Use #{FamilyBrain::LocaleCatalog.language_name(@locale)} (#{@locale}) for reminder titles.
         channel must be one of: app, email, sms. Prefer app unless the text clearly says otherwise.
         trigger_in_days must be 0 if the reminder is for today or immediate, 1 for tomorrow, etc.
 

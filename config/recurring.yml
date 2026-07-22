@@ -10,6 +10,10 @@
 #     schedule: at 5am every day
 
 development:
+  prune_ai_effects:
+    class: PruneAiEffectsJob
+    queue: maintenance
+    schedule: at 3:17am every day
   run_due_automation_rules:
     class: RunDueAutomationRulesJob
     queue: default
@@ -20,6 +24,10 @@ development:
     schedule: every minute
 
 production:
+  prune_ai_effects:
+    class: PruneAiEffectsJob
+    queue: maintenance
+    schedule: at 3:17am every day
   run_due_automation_rules:
     class: RunDueAutomationRulesJob
     queue: default

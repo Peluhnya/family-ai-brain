@@ -1,16 +1,15 @@
 module FamilyBrain
   class ActionPolicy
-    ACTIONABLE_PATTERN = /\b(треба|потрібно|необхідно|купити|оплатити|проплатити|сплатити|подзвонити|зробити|записати|замовити|відправити|підготувати)\b/i
-    ONLY_REMINDER_PATTERN = /\b(лише|тільки)\s+(?:створити\s+)?нагадування\b/i
-    ONLY_TASK_PATTERN = /\b(лише|тільки)\s+(?:створити\s+)?задач/i
-    NO_REMINDER_PATTERN = /\b(без нагадування|не нагадуй|нагадування не потрібне)\b/i
-
-    def initialize(family:, current_text:, now: Time.current)
+    def initialize(family:, current_text:, now: Time.current, locale: nil)
       @family = family
       @current_text = current_text.to_s
       @zone = ActiveSupport::TimeZone[family.timezone.presence] || Time.zone
       @now = now.in_time_zone(@zone)
-      @date_parser = FamilyBrain::UkrainianDateParser.new(reference_time: @now, timezone: @zone.tzinfo.name)
+      @date_parser = FamilyBrain::TemporalParser.new(
+        reference_time: @now,
+        timezone: @zone.tzinfo.name,
+        locale: locale || family.locale
+      )
     end
 
     def apply(actions)
@@ -90,7 +89,7 @@ module FamilyBrain
 
     def task_for_reminder(reminder, actions)
       return if only_reminder?
-      return unless @current_text.match?(ACTIONABLE_PATTERN)
+      return unless FamilyBrain::GroundedExtraction.actionable?(@current_text)
       return if related_action?(actions, "create_task", reminder)
 
       action_template(
@@ -139,15 +138,15 @@ module FamilyBrain
     end
 
     def only_reminder?
-      @current_text.match?(ONLY_REMINDER_PATTERN)
+      FamilyBrain::GroundedExtraction.only_reminder?(@current_text)
     end
 
     def only_task?
-      @current_text.match?(ONLY_TASK_PATTERN)
+      FamilyBrain::GroundedExtraction.only_task?(@current_text)
     end
 
     def no_reminder?
-      @current_text.match?(NO_REMINDER_PATTERN)
+      FamilyBrain::GroundedExtraction.no_reminder?(@current_text)
     end
   end
 end

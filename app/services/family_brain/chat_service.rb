@@ -1,18 +1,24 @@
 module FamilyBrain
   class ChatService
-    def initialize(family:, user:, message:, turn_execution_context: nil)
+    def initialize(family:, user:, message:, turn_execution_context: nil, response_locale: nil)
       @family = family
       @user = user
       @message = message
       @turn_execution_context = turn_execution_context
       @llm_client = FamilyBrain::LlmClient.new(account: @family.account)
       @account_ai_config = @llm_client.config
+      @locale = FamilyBrain::LocaleCatalog.normalize(response_locale) ||
+        FamilyBrain::LanguageResolver.for_message(family: family, message: message)
     end
 
     def call
-      return fallback_response("AI provider is not configured for this account. Add provider settings in account settings.") unless @account_ai_config.available?
+      return fallback_response(FamilyBrain::LocaleCatalog.ui_copy(@locale, :provider_unconfigured)) unless @account_ai_config.available?
 
-      prompt_builder = FamilyBrain::PromptBuilder.new(family: @family, current_message: @message)
+      prompt_builder = FamilyBrain::PromptBuilder.new(
+        family: @family,
+        current_message: @message,
+        response_locale: @locale
+      )
       system_prompt = prompt_builder.system_prompt
       prompt_metrics = prompt_builder.prompt_metrics
       short_term_messages = prompt_builder.short_term_messages.to_a
@@ -47,7 +53,7 @@ module FamilyBrain
       }
     rescue StandardError => e
       Rails.logger.error("family_brain_chat_failed family_id=#{@family.id} interaction_id=#{@message.id} error=#{e.class}: #{e.message}")
-      fallback_response("LLM request failed: #{e.message}")
+      fallback_response(FamilyBrain::LocaleCatalog.ui_copy(@locale, :request_failed))
     end
 
     private

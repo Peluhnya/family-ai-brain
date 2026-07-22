@@ -8,7 +8,10 @@ class AccountsController < ApplicationController
 
   def show
     @families = @account.families.includes(family_members: :member_users).order(:name)
-    @family = @account.families.new(timezone: "Europe/Berlin", locale: I18n.locale.to_s)
+    @family = @account.families.new(
+      timezone: "Europe/Berlin",
+      locale: FamilyBrain::LocaleCatalog.normalize(I18n.locale) || FamilyBrain::LocaleCatalog::DEFAULT_LOCALE
+    )
     load_ai_usage if ai_debug_ui_enabled?
   end
 

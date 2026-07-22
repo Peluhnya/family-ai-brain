@@ -27,6 +27,7 @@ module FamilyBrain
     def initialize(family:, text:)
       @family = family
       @text = text.to_s.strip
+      @locale = FamilyBrain::LanguageResolver.resolve(text: @text, fallback: family.locale)
     end
 
     def call
@@ -54,7 +55,7 @@ module FamilyBrain
         Do not invent tasks from context. If the user did not clearly ask for a task or describe a concrete todo, return an empty list.
         For each task, include an evidence field with the exact short quote from the user's text that proves this task exists.
         Return up to 3 tasks.
-        Use Ukrainian for title and description.
+        Use #{FamilyBrain::LocaleCatalog.language_name(@locale)} (#{@locale}) for title and description.
         If there is no clear assignee from family members, set assignee_name to an empty string.
         priority must be an integer from 1 to 5 where 5 is highest.
         due_in_days must be 0 if no clear deadline is mentioned.

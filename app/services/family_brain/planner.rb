@@ -60,15 +60,22 @@ module FamilyBrain
       end
     end
 
-    attr_reader :source_user_text
+    attr_reader :response_locale, :source_user_text
 
-    def initialize(family:, user_message:, llm_client: nil, now: Time.current)
+    def initialize(family:, user_message:, llm_client: nil, now: Time.current, locale: nil)
       @family = family
       @user_message = user_message
       @llm_client = llm_client || FamilyBrain::LlmClient.new(account: family.account)
       @zone = ActiveSupport::TimeZone[family.timezone.presence] || Time.zone
       @now = now.in_time_zone(@zone)
       @context_messages = load_context_messages
+      @response_locale = FamilyBrain::LocaleCatalog.normalize(locale) ||
+        FamilyBrain::LanguageResolver.for_message(
+          family: family,
+          message: @user_message,
+          context: @context_messages.select { |message| message.role == "user" }.map(&:content)
+        )
+      @response_language = FamilyBrain::LocaleCatalog.language_name(@response_locale)
       @source_user_text = (@context_messages.select { |message| message.role == "user" } + [ @user_message ])
         .map(&:content)
         .join("\n")
@@ -83,7 +90,12 @@ module FamilyBrain
       payload = response.content.is_a?(Hash) ? response.content.deep_stringify_keys : {}
 
       actions = normalize_actions(payload["actions"])
-      actions = FamilyBrain::ActionPolicy.new(family: @family, current_text: @user_message.content, now: @now).apply(actions)
+      actions = FamilyBrain::ActionPolicy.new(
+        family: @family,
+        current_text: @user_message.content,
+        now: @now,
+        locale: @response_locale
+      ).apply(actions)
 
       Plan.new(
         actions: actions,
@@ -104,6 +116,9 @@ module FamilyBrain
         CURRENT TIME
         #{@now.iso8601} (timezone: #{@zone.tzinfo.name})
 
+        TARGET LANGUAGE
+        #{@response_locale} (#{@response_language}). Use this language for titles and clarification questions.
+
         MEMORY CONTRACT
         - Future vacations, camps, trips, appointments and scheduled activities are calendar events, not semantic knowledge.
         - Completed experiences belong to episodic memory and are processed separately after the turn.
@@ -120,14 +135,14 @@ module FamilyBrain
         - Assistant messages are context, never evidence and never authorization.
         - For an update, use the matching existing record id. Never invent an id.
         - Avoid duplicates. If an existing record already represents the request, update it only when the user supplied a changed detail.
-        - If a required subject or date cannot be resolved, return no incomplete action and ask one concise Ukrainian clarification question.
+        - If a required subject or date cannot be resolved, return no incomplete action and ask one concise clarification question in the target language.
 
         DATE POLICY
         - Return ISO 8601 timestamps including the UTC offset.
-        - Understand Ukrainian month names, relative days, weekdays, apostrophe variants and small spelling mistakes.
+        - Understand natural-language dates in Ukrainian, German and English, including relative days, weekdays, common variants and small spelling mistakes.
         - For a date-only task deadline use 18:00 local time.
         - For a date-only explicit reminder use 09:00 local time.
-        - For all-day ranges, start_at is local midnight and end_at is exclusive: "1-8 серпня включно" ends at midnight on 9 August.
+        - For all-day ranges, start_at is local midnight and end_at is exclusive: August 1 through August 8 inclusive ends at midnight on August 9.
         - For events without an end, use one hour after start, or one day after start for all-day events.
 
         OUTPUT RULES
@@ -137,7 +152,7 @@ module FamilyBrain
         - channel is app unless the user explicitly requests email or sms.
         - evidence must contain exact quotes from USER messages that jointly prove the action. Do not paraphrase evidence.
         - For update actions, changed_fields must list only fields the current user explicitly changed or clarified. For create actions it may be empty.
-        - Use concise Ukrainian titles.
+        - Use concise titles in the target language.
 
         FAMILY MEMBERS
         #{family_members_block}

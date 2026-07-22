@@ -28,7 +28,12 @@ module FamilyBrain
       @text = text.to_s.strip
       @zone = ActiveSupport::TimeZone[family.timezone.presence] || Time.zone
       @now = now.in_time_zone(@zone)
-      @date_parser = FamilyBrain::UkrainianDateParser.new(reference_time: @now, timezone: @zone.tzinfo.name)
+      @locale = FamilyBrain::LanguageResolver.resolve(text: @text, fallback: family.locale)
+      @date_parser = FamilyBrain::TemporalParser.new(
+        reference_time: @now,
+        timezone: @zone.tzinfo.name,
+        locale: @locale
+      )
       @llm_client = llm_client
       @embedding_service = embedding_service
     end
@@ -59,7 +64,7 @@ module FamilyBrain
         Do not extract future plans, calendar events, tasks, reminders, questions, intentions or assistant statements.
         Do not extract ordinary conversational filler.
         Return at most 3 episodic memories.
-        Use concise Ukrainian for event_type and summary.
+        Use concise #{FamilyBrain::LocaleCatalog.language_name(@locale)} (#{@locale}) for event_type and summary.
         Evidence must be an exact quote from USER TEXT.
         happened_at must be ISO 8601 with offset and cannot be in the future.
         If the experience is clearly completed but no exact time is stated, use CURRENT TIME.
@@ -106,7 +111,7 @@ module FamilyBrain
     end
 
     def future_experience?(evidence)
-      return false unless evidence.match?(/\b(завтра|післязавтра|буде|будемо|піде|поїде|поїдемо|планує|збираєть|має відпустку)\b/i)
+      return false unless FamilyBrain::GroundedExtraction.future_intent?(evidence)
 
       range = @date_parser.parse_range(evidence)
       parsed_time = range&.first || @date_parser.parse_datetime(evidence, default_hour: 0)

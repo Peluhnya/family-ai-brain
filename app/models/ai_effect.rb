@@ -11,6 +11,10 @@ class AiEffect < ApplicationRecord
   validates :action_fingerprint, uniqueness: { scope: :source_ai_interaction_id }
 
   scope :recent_first, -> { order(created_at: :desc) }
+  scope :routine_outcomes, -> { where(status: %w[completed skipped]) }
+  scope :failures, -> { where(status: "failed") }
+  scope :pending, -> { where(status: "pending") }
+  scope :created_before, ->(time) { where(created_at: ...time) }
 
   def entity
     return if entity_type.blank? || entity_id.blank?
