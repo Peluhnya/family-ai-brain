@@ -3,6 +3,7 @@ class Conversation < ApplicationRecord
 
   belongs_to :family
   has_many :ai_interactions, dependent: :destroy
+  has_many :ai_action_proposals, dependent: :destroy
 
   validates :title, :started_on, presence: true
   validates :status, inclusion: { in: STATUSES }

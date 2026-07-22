@@ -78,6 +78,14 @@ module FamilyBrain
       when "update_reminder" then update_reminder(action)
       when "create_event" then create_event(action)
       when "update_event" then update_event(action)
+      when "create_knowledge" then create_knowledge(action)
+      when "update_knowledge" then update_knowledge(action)
+      when "create_life_log" then create_life_log(action)
+      when "update_life_log" then update_life_log(action)
+      when "create_document" then create_document(action)
+      when "update_document" then update_document(action)
+      when "create_automation_rule" then create_automation_rule(action)
+      when "update_automation_rule" then update_automation_rule(action)
       else raise ArgumentError, "Unsupported action #{action['kind']}"
       end
     end
@@ -106,6 +114,7 @@ module FamilyBrain
       attributes[:description] = action["description"].strip if changed?(action, "description")
       attributes[:assigned_to] = resolve_assignee_id(action["assignee_name"]) if changed?(action, "assignee_name")
       attributes[:priority] = action["priority"].to_i.clamp(1, 5) if changed?(action, "priority")
+      attributes[:status] = normalized_task_status(action["status"]) if changed?(action, "status")
       attributes[:due_at] = parse_time(action["due_at"], fallback_text: evidence_text(action), default_hour: 18, honor_fallback_clock: false) if changed?(action, "due_at")
       return [ task, "skipped", action_message(:task_unchanged) ] if attributes.empty?
 
@@ -136,6 +145,7 @@ module FamilyBrain
       attributes[:title] = action["title"].strip if changed?(action, "title") && action["title"].present?
       attributes[:trigger_at] = parse_time(action["trigger_at"], fallback_text: evidence_text(action), default_hour: 9) if changed?(action, "trigger_at")
       attributes[:channel] = normalize_channel(action["channel"]) if changed?(action, "channel")
+      attributes[:status] = normalized_reminder_status(action["status"]) if changed?(action, "status")
       return [ reminder, "skipped", action_message(:reminder_unchanged) ] if attributes.compact.empty?
 
       reminder.update!(attributes.compact)
@@ -176,6 +186,166 @@ module FamilyBrain
 
       event.update!(attributes)
       [ event, "updated", action_message(:event_updated) ]
+    end
+
+    def create_knowledge(action)
+      key, value = validated_knowledge(action)
+      existing = @family.family_knowledge.find_by(key: key)
+      if existing
+        return [ existing, "skipped", action_message(:knowledge_exists) ] if normalized_same?(existing.value, value)
+
+        raise ArgumentError, error_message(:knowledge_conflict)
+      end
+
+      knowledge = @family.family_knowledge.create!(
+        key: key,
+        value: value,
+        source: action["source"].to_s.presence || "chat:planner",
+        confidence: action["confidence"].to_f.clamp(0.0, 1.0),
+        embedding: FamilyBrain::EmbeddingService.embed("#{key}: #{value}", account: @family.account)
+      )
+      [ knowledge, "created", action_message(:knowledge_created) ]
+    end
+
+    def update_knowledge(action)
+      knowledge = @family.family_knowledge.find(action["record_id"])
+      attributes = {}
+      attributes[:key] = validated_knowledge_key(action["key"]) if changed?(action, "key")
+      if changed?(action, "value")
+        value = validated_evidence_value(action["value"])
+        attributes[:value] = value
+      end
+      attributes[:source] = action["source"].to_s.presence || "chat:planner" if changed?(action, "source")
+      attributes[:confidence] = action["confidence"].to_f.clamp(0.0, 1.0) if changed?(action, "confidence")
+      return [ knowledge, "skipped", action_message(:knowledge_unchanged) ] if attributes.empty?
+
+      merged_key = attributes.fetch(:key, knowledge.key)
+      merged_value = attributes.fetch(:value, knowledge.value)
+      attributes[:embedding] = FamilyBrain::EmbeddingService.embed("#{merged_key}: #{merged_value}", account: @family.account)
+      knowledge.update!(attributes)
+      [ knowledge, "updated", action_message(:knowledge_updated) ]
+    end
+
+    def create_life_log(action)
+      summary = validated_evidence_value(action["summary"])
+      happened_at = parse_time(action["happened_at"], fallback_text: evidence_text(action), default_hour: @now.hour)
+      raise ArgumentError, error_message(:life_log_time_missing) unless happened_at
+      raise ArgumentError, error_message(:life_log_time_future) if happened_at > @now + 5.minutes
+
+      existing = matching_life_log(summary, happened_at)
+      return [ existing, "skipped", action_message(:life_log_exists) ] if existing
+
+      event_type = normalized_life_log_type(action["event_type"])
+      life_log = @family.life_logs.create!(
+        event_type: event_type,
+        summary: summary,
+        raw_text: validated_optional_evidence_value(action["raw_text"]) || summary,
+        importance: action["importance"].to_f.clamp(0.0, 1.0),
+        happened_at: happened_at,
+        embedding: FamilyBrain::EmbeddingService.embed([ event_type, summary ].join("\n"), account: @family.account)
+      )
+      [ life_log, "created", action_message(:life_log_created) ]
+    end
+
+    def update_life_log(action)
+      life_log = @family.life_logs.find(action["record_id"])
+      attributes = {}
+      attributes[:event_type] = normalized_life_log_type(action["event_type"]) if changed?(action, "event_type")
+      attributes[:summary] = validated_evidence_value(action["summary"]) if changed?(action, "summary")
+      attributes[:raw_text] = validated_optional_evidence_value(action["raw_text"]) if changed?(action, "raw_text")
+      attributes[:importance] = action["importance"].to_f.clamp(0.0, 1.0) if changed?(action, "importance")
+      if changed?(action, "happened_at")
+        happened_at = parse_time(action["happened_at"], fallback_text: evidence_text(action), default_hour: @now.hour)
+        raise ArgumentError, error_message(:life_log_time_future) if happened_at && happened_at > @now + 5.minutes
+        attributes[:happened_at] = happened_at
+      end
+      return [ life_log, "skipped", action_message(:life_log_unchanged) ] if attributes.compact.empty?
+
+      merged_type = attributes.fetch(:event_type, life_log.event_type)
+      merged_summary = attributes.fetch(:summary, life_log.summary)
+      attributes[:embedding] = FamilyBrain::EmbeddingService.embed([ merged_type, merged_summary ].join("\n"), account: @family.account)
+      life_log.update!(attributes.compact)
+      [ life_log, "updated", action_message(:life_log_updated) ]
+    end
+
+    def create_document(action)
+      validate_title!(action)
+      content = validated_document_content(action["content"])
+      existing = matching_document(action["title"], content)
+      return [ existing, "skipped", action_message(:document_exists) ] if existing
+
+      document = @family.documents.create!(
+        title: action["title"].strip,
+        content: content,
+        embedding: FamilyBrain::EmbeddingService.embed(
+          [ action["title"], content ].join("\n\n"),
+          account: @family.account
+        )
+      )
+      [ document, "created", action_message(:document_created) ]
+    end
+
+    def update_document(action)
+      document = @family.documents.find(action["record_id"])
+      attributes = {}
+      if changed?(action, "title")
+        validate_title!(action)
+        attributes[:title] = action["title"].strip
+      end
+      attributes[:content] = validated_document_content(action["content"]) if changed?(action, "content")
+      return [ document, "skipped", action_message(:document_unchanged) ] if attributes.empty?
+
+      merged_title = attributes.fetch(:title, document.title)
+      merged_content = attributes.fetch(:content, document.content)
+      attributes[:embedding] = FamilyBrain::EmbeddingService.embed(
+        [ merged_title, merged_content ].join("\n\n"),
+        account: @family.account
+      )
+      document.update!(attributes)
+      [ document, "updated", action_message(:document_updated) ]
+    end
+
+    def create_automation_rule(action)
+      validate_title!(action)
+      trigger_type, trigger_config = automation_trigger(action)
+      action_type, action_config = automation_action(action)
+      existing = matching_automation_rule(action["title"], trigger_type, trigger_config, action_type, action_config)
+      return [ existing, "skipped", action_message(:automation_exists) ] if existing
+
+      rule = @family.automation_rules.create!(
+        name: action["title"].strip,
+        active: action["active"] == true,
+        template_key: "ai_chat_custom",
+        trigger_type: trigger_type,
+        trigger_config: trigger_config,
+        action_type: action_type,
+        action_config: action_config
+      )
+      [ rule, "created", action_message(:automation_created) ]
+    end
+
+    def update_automation_rule(action)
+      rule = @family.automation_rules.find(action["record_id"])
+      attributes = {}
+      if changed?(action, "title")
+        validate_title!(action)
+        attributes[:name] = action["title"].strip
+      end
+      attributes[:active] = action["active"] == true if changed?(action, "active")
+      if Array(action["changed_fields"]).any? { |field| field.start_with?("automation_trigger_") || field == "automation_match_mode" }
+        trigger_type, trigger_config = automation_trigger(action)
+        attributes[:trigger_type] = trigger_type
+        attributes[:trigger_config] = trigger_config
+      end
+      if Array(action["changed_fields"]).any? { |field| field.start_with?("automation_action_") || field.in?(%w[key value confidence event_type importance]) }
+        action_type, action_config = automation_action(action)
+        attributes[:action_type] = action_type
+        attributes[:action_config] = action_config
+      end
+      return [ rule, "skipped", action_message(:automation_unchanged) ] if attributes.empty?
+
+      rule.update!(attributes)
+      [ rule, "updated", action_message(:automation_updated) ]
     end
 
     def event_times(action, existing_event: nil)
@@ -220,9 +390,204 @@ module FamilyBrain
     def validate_evidence!(action)
       quotes = Array(action["evidence"]).map(&:to_s).reject(&:blank?)
       raise ArgumentError, error_message(:evidence_missing) if quotes.empty?
+      unless quotes.any? { |quote| FamilyBrain::GroundedExtraction.evidence_present?(@source_user_text, quote) }
+        raise ArgumentError, error_message(:evidence_unverified)
+      end
 
-      missing_quote = quotes.find { |quote| !FamilyBrain::GroundedExtraction.evidence_present?(@source_user_text, quote) }
+      missing_quote = quotes.find do |quote|
+        !FamilyBrain::GroundedExtraction.evidence_fragment_present?(@source_user_text, quote)
+      end
       raise ArgumentError, error_message(:evidence_unverified) if missing_quote
+    end
+
+    def validated_knowledge(action)
+      [ validated_knowledge_key(action["key"]), validated_evidence_value(action["value"]) ]
+    end
+
+    def validated_knowledge_key(value)
+      key = value.to_s.strip
+      raise ArgumentError, error_message(:knowledge_key_invalid) unless key.match?(/\A[a-z0-9]+(?:_[a-z0-9]+)*\z/)
+
+      key
+    end
+
+    def validated_evidence_value(value)
+      value = value.to_s.strip
+      unless FamilyBrain::GroundedExtraction.meaningful_phrase?(value) &&
+          FamilyBrain::GroundedExtraction.evidence_present?(@source_user_text, value)
+        raise ArgumentError, error_message(:memory_value_unverified)
+      end
+
+      value
+    end
+
+    def validated_optional_evidence_value(value)
+      return if value.blank?
+
+      validated_evidence_value(value)
+    end
+
+    def normalized_life_log_type(value)
+      allowed = %w[family_moment trip celebration achievement health milestone other]
+      allowed.include?(value.to_s) ? value.to_s : "other"
+    end
+
+    def matching_life_log(summary, happened_at)
+      normalized = FamilyBrain::GroundedExtraction.normalize_text(summary)
+      @family.life_logs.where(happened_at: (happened_at - 1.day)..(happened_at + 1.day)).detect do |life_log|
+        FamilyBrain::GroundedExtraction.normalize_text(life_log.summary) == normalized
+      end
+    end
+
+    def validated_document_content(value)
+      content = value.to_s.strip
+      unless FamilyBrain::GroundedExtraction.meaningful_phrase?(content) &&
+          FamilyBrain::GroundedExtraction.evidence_present?(@source_user_text, content)
+        raise ArgumentError, error_message(:document_content_unverified)
+      end
+
+      content
+    end
+
+    def matching_document(title, content)
+      normalized_title = FamilyBrain::GroundedExtraction.normalize_text(title)
+      normalized_content = FamilyBrain::GroundedExtraction.normalize_text(content)
+      @family.documents.detect do |document|
+        FamilyBrain::GroundedExtraction.normalize_text(document.title) == normalized_title &&
+          FamilyBrain::GroundedExtraction.normalize_text(document.content) == normalized_content
+      end
+    end
+
+    def automation_trigger(action)
+      trigger_type = action["automation_trigger_type"].to_s
+      trigger_config = case trigger_type
+      when "schedule_daily"
+        { "time" => validated_automation_time(action["automation_trigger_time"]) }
+      when "schedule_weekly"
+        {
+          "weekday" => validated_automation_weekday(action["automation_trigger_weekday"]),
+          "time" => validated_automation_time(action["automation_trigger_time"])
+        }
+      when "schedule_monthly"
+        {
+          "day" => action["automation_trigger_day"].to_i.clamp(1, 31),
+          "time" => validated_automation_time(action["automation_trigger_time"])
+        }
+      when "chat_keyword"
+        keyword = action["automation_trigger_keyword"].to_s.strip.downcase
+        raise ArgumentError, error_message(:automation_keyword_missing) if keyword.blank?
+        unless FamilyBrain::GroundedExtraction.normalize_text(@source_user_text).include?(FamilyBrain::GroundedExtraction.normalize_text(keyword))
+          raise ArgumentError, error_message(:automation_keyword_unverified)
+        end
+
+        {
+          "keyword" => keyword,
+          "match_mode" => normalized_match_mode(action["automation_match_mode"])
+        }
+      else
+        raise ArgumentError, error_message(:automation_trigger_invalid)
+      end
+
+      [ trigger_type, trigger_config ]
+    end
+
+    def automation_action(action)
+      action_type = action["automation_action_type"].to_s
+      action_config = case action_type
+      when "create_ai_note"
+        { "content" => validated_automation_content(action["automation_action_content"]) }
+      when "create_life_log"
+        {
+          "event_type" => normalized_life_log_type(action["event_type"]),
+          "summary" => validated_automation_content(action["automation_action_content"]),
+          "raw_text" => validated_automation_content(action["automation_action_content"]),
+          "importance" => action["importance"].to_f.clamp(0.0, 1.0)
+        }
+      when "create_family_knowledge"
+        {
+          "key" => validated_knowledge_key(action["key"]),
+          "value" => validated_automation_content(action["value"]),
+          "source" => "automation_rule",
+          "confidence" => action["confidence"].to_f.clamp(0.0, 1.0)
+        }
+      when "create_task"
+        {
+          "title" => validated_automation_title(action["automation_action_title"]),
+          "description" => action["description"].to_s.presence,
+          "priority" => action["priority"].to_i.clamp(1, 5),
+          "status" => "pending",
+          "assigned_to" => resolve_assignee_id(action["assignee_name"]),
+          "due_in_days" => normalized_automation_offset(action["automation_offset_days"])
+        }
+      when "create_event"
+        {
+          "title" => validated_automation_title(action["automation_action_title"]),
+          "location" => action["location"].to_s.presence,
+          "source" => "automation_rule",
+          "start_in_days" => normalized_automation_offset(action["automation_offset_days"]),
+          "duration_hours" => action["automation_duration_hours"].to_i.clamp(1, 24)
+        }
+      when "create_reminder"
+        {
+          "title" => validated_automation_title(action["automation_action_title"]),
+          "channel" => normalize_channel(action["automation_channel"]),
+          "trigger_in_days" => normalized_automation_offset(action["automation_offset_days"])
+        }
+      else
+        raise ArgumentError, error_message(:automation_action_invalid)
+      end
+
+      [ action_type, action_config ]
+    end
+
+    def validated_automation_time(value)
+      time = value.to_s.strip
+      raise ArgumentError, error_message(:automation_time_invalid) unless time.match?(/\A(?:[01]\d|2[0-3]):[0-5]\d\z/)
+
+      time
+    end
+
+    def validated_automation_weekday(value)
+      weekday = value.to_s.strip.downcase
+      raise ArgumentError, error_message(:automation_weekday_invalid) unless weekday.in?(%w[monday tuesday wednesday thursday friday saturday sunday])
+
+      weekday
+    end
+
+    def normalized_match_mode(value)
+      value.to_s.in?(%w[exact_command word contains]) ? value.to_s : "word"
+    end
+
+    def validated_automation_content(value)
+      validated_evidence_value(value)
+    end
+
+    def validated_automation_title(value)
+      title = FamilyBrain::GroundedExtraction.grounded_title(value, evidence_text_from_source)
+      raise ArgumentError, error_message(:title_unverified) unless title
+
+      title
+    end
+
+    def evidence_text_from_source
+      @source_user_text
+    end
+
+    def normalized_automation_offset(value)
+      value.to_i.clamp(0, 365)
+    end
+
+    def matching_automation_rule(name, trigger_type, trigger_config, action_type, action_config)
+      normalized_name = FamilyBrain::GroundedExtraction.normalize_text(name)
+      @family.automation_rules.detect do |rule|
+        FamilyBrain::GroundedExtraction.normalize_text(rule.name) == normalized_name &&
+          rule.trigger_type == trigger_type && rule.trigger_config == trigger_config &&
+          rule.action_type == action_type && rule.action_config == action_config
+      end
+    end
+
+    def normalized_same?(left, right)
+      FamilyBrain::GroundedExtraction.normalize_text(left) == FamilyBrain::GroundedExtraction.normalize_text(right)
     end
 
     def evidence_text(action)
@@ -261,6 +626,20 @@ module FamilyBrain
     def normalize_channel(value)
       channel = value.to_s.strip
       Reminder::CHANNELS.include?(channel) ? channel : "app"
+    end
+
+    def normalized_task_status(value)
+      status = value.to_s
+      raise ArgumentError, "Unsupported task status" unless status.in?(Task::STATUSES)
+
+      status
+    end
+
+    def normalized_reminder_status(value)
+      status = value.to_s
+      raise ArgumentError, "Unsupported reminder status" unless status.in?(Reminder::STATUSES)
+
+      status
     end
 
     def changed?(action, field)
@@ -310,9 +689,18 @@ module FamilyBrain
         status: status,
         entity_type: entity&.class&.name,
         entity_id: entity&.id,
-        title: entity.respond_to?(:title) ? entity.title : action["title"].to_s,
+        title: result_title(entity, action),
         message: message
       )
+    end
+
+    def result_title(entity, action)
+      return entity.title if entity.respond_to?(:title)
+      return entity.key if entity.respond_to?(:key)
+      return entity.summary if entity.respond_to?(:summary)
+      return entity.name if entity.respond_to?(:name)
+
+      action["title"].presence || action["key"].presence || action["summary"].to_s
     end
 
     def action_message(key)

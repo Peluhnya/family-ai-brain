@@ -66,6 +66,15 @@ module FamilyBrain
       normalized_source.include?(normalized_evidence)
     end
 
+    def evidence_fragment_present?(source_text, evidence)
+      normalized_source = normalize_text(source_text)
+      normalized_evidence = normalize_text(evidence)
+
+      return false if normalized_evidence.length < 2
+
+      normalized_source.include?(normalized_evidence)
+    end
+
     def title_grounded_in_evidence?(title, evidence)
       title_tokens = significant_tokens(title)
       evidence_tokens = significant_tokens(evidence)

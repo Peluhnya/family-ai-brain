@@ -13,7 +13,8 @@ class PruneAiInteractionsJob < ApplicationJob
     Rails.logger.info(
       "ai_interaction_retention_cleanup " \
       "messages_deleted=#{counts[:messages]} conversations_deleted=#{counts[:conversations]} " \
-      "effects_deleted=#{counts[:effects]} metadata_compacted=#{counts[:metadata_compacted]}"
+      "effects_deleted=#{counts[:effects]} proposals_deleted=#{counts[:proposals]} " \
+      "metadata_compacted=#{counts[:metadata_compacted]}"
     )
     counts
   end
@@ -45,7 +46,7 @@ class PruneAiInteractionsJob < ApplicationJob
   end
 
   def delete_conversations_ending_before(cutoff)
-    counts = { messages: 0, conversations: 0, effects: 0 }
+    counts = { messages: 0, conversations: 0, effects: 0, proposals: 0 }
     expired = Conversation.where(last_message_at: ...cutoff).or(
       Conversation.where(last_message_at: nil, started_on: ...cutoff.to_date)
     )
@@ -54,6 +55,7 @@ class PruneAiInteractionsJob < ApplicationJob
       conversation_ids = batch.pluck(:id)
       interaction_scope = AiInteraction.where(conversation_id: conversation_ids)
       counts[:effects] += AiEffect.where(source_ai_interaction_id: interaction_scope.select(:id)).delete_all
+      counts[:proposals] += AiActionProposal.where(conversation_id: conversation_ids).delete_all
       counts[:messages] += interaction_scope.delete_all
       counts[:conversations] += Conversation.where(id: conversation_ids).delete_all
     end

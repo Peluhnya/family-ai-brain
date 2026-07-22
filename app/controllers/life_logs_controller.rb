@@ -7,15 +7,9 @@ class LifeLogsController < ApplicationController
 
   def create
     @life_log = @family.life_logs.new(life_log_params)
-    @life_log.embedding = FamilyBrain::EmbeddingService.embed([@life_log.event_type, @life_log.summary, @life_log.raw_text].compact.join("\n"), account: @family.account)
+    @life_log.embedding = FamilyBrain::EmbeddingService.embed([ @life_log.event_type, @life_log.summary, @life_log.raw_text ].compact.join("\n"), account: @family.account)
 
     if @life_log.save
-      FamilyBrain::KnowledgeSyncService.new(
-        family: @family,
-        text: [@life_log.summary, @life_log.raw_text].compact.join("\n"),
-        source: "life_log:auto"
-      ).call
-
       respond_with_family_tab_success(family: @family, active_tab: "logs", notice: "Life log was successfully created.")
     else
       render_family_tab_page(family: @family, active_tab: "logs", form_overrides: { life_log_form: @life_log }, status: :unprocessable_entity)
@@ -24,7 +18,7 @@ class LifeLogsController < ApplicationController
 
   def update
     @life_log.assign_attributes(life_log_params)
-    @life_log.embedding = FamilyBrain::EmbeddingService.embed([@life_log.event_type, @life_log.summary, @life_log.raw_text].compact.join("\n"), account: @family.account)
+    @life_log.embedding = FamilyBrain::EmbeddingService.embed([ @life_log.event_type, @life_log.summary, @life_log.raw_text ].compact.join("\n"), account: @family.account)
 
     if @life_log.save
       respond_with_family_tab_success(family: @family, active_tab: "logs", notice: "Life log was successfully updated.")

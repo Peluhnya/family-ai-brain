@@ -8,22 +8,20 @@ module FamilyBrain
       @now = ActiveSupport::TimeZone["Europe/Berlin"].local(2026, 7, 22, 12)
     end
 
-    test "adds a reminder to a deadline task" do
+    test "does not silently add a reminder to a deadline task" do
       actions = [ action(kind: "create_task", title: "Проплатити кредит", due_at: "2026-07-24T18:00:00+02:00") ]
 
       result = policy("до пʼятниці потрібно проплатити кредит").apply(actions)
 
-      assert_equal %w[create_task create_reminder], result.map { |item| item["kind"] }
-      assert_equal "2026-07-24T09:00:00+02:00", result.last["trigger_at"]
+      assert_equal [ "create_task" ], result.map { |item| item["kind"] }
     end
 
-    test "adds a previous-day reminder to a future event" do
+    test "does not silently add a previous-day reminder to a future event" do
       actions = [ action(kind: "create_event", title: "Табір Меланії", start_at: "2026-08-01T00:00:00+02:00", all_day: true) ]
 
       result = policy("Меланія 1 серпня іде в табір").apply(actions)
 
-      assert_equal %w[create_event create_reminder], result.map { |item| item["kind"] }
-      assert_equal "2026-07-31T18:00:00+02:00", result.last["trigger_at"]
+      assert_equal [ "create_event" ], result.map { |item| item["kind"] }
     end
 
     test "respects only-reminder intent" do
@@ -49,14 +47,14 @@ module FamilyBrain
       assert_equal [ "create_reminder" ], result.map { |item| item["kind"] }
     end
 
-    test "adds a task for an actionable English reminder" do
+    test "does not silently add a task for an actionable English reminder" do
       @family.update!(locale: "en-GB")
       evidence = "Remind me tomorrow to pay the loan"
       actions = [ action(kind: "create_reminder", title: "Pay the loan", evidence: [ evidence ]) ]
 
       result = policy(evidence).apply(actions)
 
-      assert_equal %w[create_reminder create_task], result.map { |item| item["kind"] }
+      assert_equal [ "create_reminder" ], result.map { |item| item["kind"] }
       assert_equal "2026-07-23T09:00:00+02:00", result.first["trigger_at"]
     end
 

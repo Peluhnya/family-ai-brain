@@ -177,6 +177,137 @@ module FamilyBrain
       assert event.all_day?
     end
 
+    test "marks a uniquely resolved task as done" do
+      task = @family.tasks.create!(title: "Купити молоко", status: "pending", priority: 3)
+      text = "Познач задачу купити молоко виконаною"
+      message = user_message(text)
+
+      result = executor(message, text).call([
+        action(
+          kind: "update_task",
+          record_id: task.id,
+          title: task.title,
+          status: "done",
+          evidence: [ text ],
+          changed_fields: [ "status" ]
+        )
+      ]).first
+
+      assert_equal "updated", result.status
+      assert_equal "done", task.reload.status
+    end
+
+    test "stores exact durable knowledge without paraphrasing" do
+      text = "Наша сімʼя любить ходити в гори"
+      message = user_message(text)
+
+      result = executor(message, text).call([
+        action(
+          kind: "create_knowledge",
+          key: "family_likes_mountains",
+          value: text,
+          source: "chat:planner",
+          confidence: 0.95,
+          evidence: [ text ]
+        )
+      ]).first
+
+      assert_equal "created", result.status, result.message
+      assert_equal text, @family.family_knowledge.last.value
+    end
+
+    test "does not overwrite conflicting knowledge through create" do
+      existing = @family.family_knowledge.create!(
+        key: "school_start_time",
+        value: "Школа починається о восьмій",
+        source: "manual",
+        confidence: 1.0
+      )
+      text = "Школа починається о девʼятій"
+      message = user_message(text)
+
+      result = executor(message, text).call([
+        action(
+          kind: "create_knowledge",
+          key: existing.key,
+          value: text,
+          source: "chat:planner",
+          confidence: 0.9,
+          evidence: [ text ]
+        )
+      ]).first
+
+      assert_equal "failed", result.status
+      assert_equal "Школа починається о восьмій", existing.reload.value
+    end
+
+    test "stores a completed meaningful experience as life history" do
+      text = "Учора Меланія вперше виступила на концерті"
+      message = user_message(text)
+
+      result = executor(message, text).call([
+        action(
+          kind: "create_life_log",
+          event_type: "milestone",
+          summary: text,
+          raw_text: text,
+          importance: 0.9,
+          happened_at: "2026-07-21T18:00:00+02:00",
+          evidence: [ text ]
+        )
+      ]).first
+
+      assert_equal "created", result.status, result.message
+      assert_equal text, @family.life_logs.last.summary
+      assert_equal "milestone", @family.life_logs.last.event_type
+    end
+
+    test "creates a document only from exact conversation content" do
+      title_text = "Збережи документ Сімейні правила"
+      content_text = "Завжди перевіряти календар перед плануванням сімейної поїздки"
+      message = user_message(title_text)
+      source_text = [ title_text, content_text ].join("\n")
+
+      result = executor(message, source_text).call([
+        action(
+          kind: "create_document",
+          title: "Сімейні правила",
+          content: content_text,
+          evidence: [ title_text, content_text ]
+        )
+      ]).first
+
+      assert_equal "created", result.status, result.message
+      assert_equal content_text, @family.documents.last.content
+    end
+
+    test "creates a confirmed structured automation rule" do
+      text = "Створи щоденну автоматизацію о 08:00: перевірити сімейний календар"
+      message = user_message(text)
+
+      result = executor(message, text).call([
+        action(
+          kind: "create_automation_rule",
+          title: "Щоденна автоматизація календаря",
+          active: true,
+          automation_trigger_type: "schedule_daily",
+          automation_trigger_time: "08:00",
+          automation_action_type: "create_task",
+          automation_action_title: "Перевірити сімейний календар",
+          automation_offset_days: 0,
+          evidence: [ text ]
+        )
+      ]).first
+
+      assert_equal "created", result.status, result.message
+      rule = @family.automation_rules.last
+      assert_equal "schedule_daily", rule.trigger_type
+      assert_equal({ "time" => "08:00" }, rule.trigger_config)
+      assert_equal "create_task", rule.action_type
+      assert_equal "Перевірити сімейний календар", rule.action_config["title"]
+      assert rule.active?
+    end
+
     private
 
     def user_message(content)
@@ -195,6 +326,7 @@ module FamilyBrain
         "description" => "",
         "assignee_name" => "",
         "priority" => 3,
+        "status" => "",
         "due_at" => "",
         "trigger_at" => "",
         "channel" => "app",
@@ -202,6 +334,29 @@ module FamilyBrain
         "end_at" => "",
         "all_day" => false,
         "location" => "",
+        "key" => "",
+        "value" => "",
+        "source" => "",
+        "confidence" => 0.7,
+        "event_type" => "",
+        "summary" => "",
+        "raw_text" => "",
+        "importance" => 0.5,
+        "happened_at" => "",
+        "content" => "",
+        "active" => false,
+        "automation_trigger_type" => "",
+        "automation_trigger_time" => "",
+        "automation_trigger_weekday" => "",
+        "automation_trigger_day" => 0,
+        "automation_trigger_keyword" => "",
+        "automation_match_mode" => "",
+        "automation_action_type" => "",
+        "automation_action_title" => "",
+        "automation_action_content" => "",
+        "automation_offset_days" => 0,
+        "automation_duration_hours" => 1,
+        "automation_channel" => "app",
         "evidence" => [],
         "changed_fields" => []
       }.merge(overrides.stringify_keys)

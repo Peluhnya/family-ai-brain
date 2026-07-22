@@ -7,6 +7,11 @@ class AiInteraction < ApplicationRecord
   belongs_to :reply_to, class_name: "AiInteraction", optional: true
   has_one :reply, class_name: "AiInteraction", foreign_key: :reply_to_id, dependent: :nullify
   has_many :ai_effects, foreign_key: :source_ai_interaction_id, dependent: :destroy
+  has_many :ai_action_proposals, foreign_key: :source_ai_interaction_id, dependent: :destroy
+  has_many :confirmed_ai_action_proposals,
+    class_name: "AiActionProposal",
+    foreign_key: :confirmation_ai_interaction_id,
+    dependent: :nullify
 
   encrypts :content
 

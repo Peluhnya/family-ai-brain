@@ -1,0 +1,59 @@
+<% locale = FamilyBrain::LanguageResolver.for_message(family: proposal.family, message: proposal.source_ai_interaction) %>
+<% payload = proposal.payload_data %>
+<% display_title = payload["title"].presence || payload["value"].presence || payload["summary"].presence || proposal.action_kind.humanize %>
+<% schedule_value = payload["trigger_at"].presence || payload["start_at"].presence || payload["due_at"].presence || payload["happened_at"].presence %>
+<div id="<%= dom_id(proposal) %>"
+     class="mt-3 rounded-2xl border border-[var(--line)] bg-white/70 p-3"
+     data-controller="action-proposal">
+  <div class="flex flex-wrap items-start justify-between gap-2">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"><%= FamilyBrain::LocaleCatalog.proposal_action_label(locale, proposal.action_kind) %></p>
+      <p class="mt-1 text-sm font-medium text-[var(--ink)]"><%= truncate(display_title, length: 180) %></p>
+      <% if schedule_value.present? %>
+        <% formatted_schedule = Time.iso8601(schedule_value).in_time_zone(proposal.family.timezone.presence || Time.zone.name).strftime("%d.%m.%Y %H:%M") rescue schedule_value %>
+        <p class="mt-1 text-xs text-[var(--muted)]"><%= formatted_schedule %></p>
+      <% end %>
+      <% if payload["content"].present? %>
+        <p class="mt-2 line-clamp-4 text-xs leading-5 text-[var(--ink-soft)]"><%= truncate(payload["content"], length: 320) %></p>
+      <% end %>
+      <% if proposal.action_kind.in?(%w[create_automation_rule update_automation_rule]) %>
+        <p class="mt-2 text-xs leading-5 text-[var(--ink-soft)]">
+          <%= payload["automation_trigger_type"] %>
+          <% if payload["automation_trigger_time"].present? %> · <%= payload["automation_trigger_time"] %><% end %>
+          <% if payload["automation_trigger_weekday"].present? %> · <%= payload["automation_trigger_weekday"] %><% end %>
+          <% if payload["automation_trigger_keyword"].present? %> · “<%= payload["automation_trigger_keyword"] %>”<% end %>
+          → <%= payload["automation_action_type"] %>
+          <% if payload["automation_action_title"].present? %> · <%= payload["automation_action_title"] %><% end %>
+        </p>
+      <% end %>
+    </div>
+    <span class="meta-pill" data-action-proposal-target="status">
+      <% status_key = case proposal.state
+        when "awaiting_clarification" then :clarification_needed
+        when "awaiting_confirmation" then :confirmation_needed
+        when "ready", "executing" then :executing
+        else proposal.state.to_sym
+      end %>
+      <%= FamilyBrain::LocaleCatalog.proposal_copy(locale, status_key) %>
+    </span>
+  </div>
+
+  <% if proposal.state == "awaiting_clarification" && proposal.missing_fields.any? %>
+    <p class="mt-2 text-xs text-[var(--muted)]"><%= FamilyBrain::LocaleCatalog.proposal_copy(locale, :clarification_needed) %></p>
+  <% elsif proposal.state == "awaiting_confirmation" %>
+    <div class="mt-3 flex flex-wrap gap-2" data-action-proposal-target="actions">
+      <%= button_to FamilyBrain::LocaleCatalog.proposal_copy(locale, :confirm),
+        confirm_family_ai_action_proposal_path(proposal.family, proposal),
+        method: :post,
+        class: "cta-primary cursor-pointer",
+        form: { data: { action: "submit->action-proposal#submit" } } %>
+      <%= button_to FamilyBrain::LocaleCatalog.proposal_copy(locale, :reject),
+        reject_family_ai_action_proposal_path(proposal.family, proposal),
+        method: :post,
+        class: "cta-secondary cursor-pointer",
+        form: { data: { action: "submit->action-proposal#submit" } } %>
+    </div>
+  <% elsif proposal.error_message.present? %>
+    <p class="mt-2 text-xs text-rose-700"><%= FamilyBrain::LocaleCatalog.proposal_copy(locale, :failed) %></p>
+  <% end %>
+</div>

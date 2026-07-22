@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_231000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_232100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -29,6 +29,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_231000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_accounts_on_user_id"
+  end
+
+  create_table "ai_action_proposals", force: :cascade do |t|
+    t.string "action_fingerprint", null: false
+    t.string "action_kind", null: false
+    t.bigint "confirmation_ai_interaction_id"
+    t.bigint "confirmed_by_id"
+    t.bigint "conversation_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "entity_id"
+    t.string "entity_type"
+    t.text "error_message"
+    t.text "evidence"
+    t.datetime "executed_at"
+    t.datetime "expires_at"
+    t.bigint "family_id", null: false
+    t.string "group_key"
+    t.string "intent_strength", default: "explicit", null: false
+    t.jsonb "missing_fields", default: [], null: false
+    t.text "payload"
+    t.string "risk", default: "low", null: false
+    t.bigint "source_ai_interaction_id", null: false
+    t.string "state", default: "awaiting_clarification", null: false
+    t.datetime "updated_at", null: false
+    t.index ["confirmation_ai_interaction_id"], name: "index_ai_action_proposals_on_confirmation_ai_interaction_id"
+    t.index ["confirmed_by_id"], name: "index_ai_action_proposals_on_confirmed_by_id"
+    t.index ["conversation_id", "state", "created_at"], name: "idx_on_conversation_id_state_created_at_bdfbbacd1f"
+    t.index ["conversation_id"], name: "index_ai_action_proposals_on_conversation_id"
+    t.index ["entity_type", "entity_id"], name: "index_ai_action_proposals_on_entity_type_and_entity_id"
+    t.index ["family_id", "state", "expires_at"], name: "idx_on_family_id_state_expires_at_f05b45d0ff"
+    t.index ["family_id"], name: "index_ai_action_proposals_on_family_id"
+    t.index ["source_ai_interaction_id", "action_fingerprint"], name: "index_ai_action_proposals_on_source_and_fingerprint", unique: true
+    t.index ["source_ai_interaction_id"], name: "index_ai_action_proposals_on_source_ai_interaction_id"
   end
 
   create_table "ai_effects", force: :cascade do |t|
@@ -294,6 +327,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_231000) do
   end
 
   add_foreign_key "accounts", "users"
+  add_foreign_key "ai_action_proposals", "ai_interactions", column: "confirmation_ai_interaction_id"
+  add_foreign_key "ai_action_proposals", "ai_interactions", column: "source_ai_interaction_id"
+  add_foreign_key "ai_action_proposals", "conversations"
+  add_foreign_key "ai_action_proposals", "families"
+  add_foreign_key "ai_action_proposals", "users", column: "confirmed_by_id"
   add_foreign_key "ai_effects", "ai_interactions", column: "source_ai_interaction_id"
   add_foreign_key "ai_effects", "families"
   add_foreign_key "ai_interactions", "ai_interactions", column: "reply_to_id", on_delete: :nullify

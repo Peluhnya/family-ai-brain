@@ -35,9 +35,8 @@ module FamilyBrain
           importance: (@rule.action_config["importance"] || 0.7).to_f,
           happened_at: Time.current
         )
-        log.embedding = FamilyBrain::EmbeddingService.embed([log.event_type, log.summary, log.raw_text].compact.join("\n"), account: @family.account)
+        log.embedding = FamilyBrain::EmbeddingService.embed([ log.event_type, log.summary, log.raw_text ].compact.join("\n"), account: @family.account)
         log.save!
-        FamilyBrain::KnowledgeSyncService.new(family: @family, text: [log.summary, log.raw_text].compact.join("\n"), source: "automation_rule:auto").call
         log
       when "create_family_knowledge"
         key = interpolate(@rule.action_config["key"])

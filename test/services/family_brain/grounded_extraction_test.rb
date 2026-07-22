@@ -17,6 +17,8 @@ module FamilyBrain
 
       assert GroundedExtraction.evidence_present?(text, "нагадай мені завтра ввечері подзвонити мамі")
       assert_not GroundedExtraction.evidence_present?(text, "подзвонити татові")
+      assert GroundedExtraction.evidence_fragment_present?("о 10", "о 10")
+      assert_not GroundedExtraction.evidence_present?("о 10", "о 10")
     end
 
     test "checks that the title is grounded in the evidence quote" do

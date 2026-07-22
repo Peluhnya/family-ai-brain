@@ -15,6 +15,17 @@ class PruneAiInteractionsJobTest < ActiveJob::TestCase
       action_fingerprint: "expired-message-effect",
       status: "completed"
     )
+    proposal = @family.ai_action_proposals.new(
+      conversation: expired_conversation,
+      source_ai_interaction: expired_message,
+      action_kind: "create_task",
+      action_fingerprint: "expired-message-proposal",
+      state: "completed",
+      intent_strength: "explicit",
+      risk: "low"
+    )
+    proposal.payload_data = { kind: "create_task", title: "Expired" }
+    proposal.save!
     compacted_conversation = conversation_at(@now - 45.days)
     compacted_message = message_in(compacted_conversation, created_at: @now - 45.days, metadata: { "debug" => true })
     recent_conversation = conversation_at(@now - 5.days)
@@ -30,9 +41,11 @@ class PruneAiInteractionsJobTest < ActiveJob::TestCase
     assert_equal 1, counts[:messages]
     assert_equal 2, counts[:conversations]
     assert_equal 1, counts[:effects]
+    assert_equal 1, counts[:proposals]
     assert_equal 1, counts[:metadata_compacted]
     assert_not AiInteraction.exists?(expired_message.id)
     assert_not AiEffect.exists?(effect.id)
+    assert_not AiActionProposal.exists?(proposal.id)
     assert_not Conversation.exists?(empty_expired_conversation.id)
     assert_empty compacted_message.reload.llm_metadata
     assert_equal({ "debug" => true }, recent_message.reload.llm_metadata)

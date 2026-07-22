@@ -4,6 +4,7 @@ class Family < ApplicationRecord
   has_many :conversations, dependent: :destroy
   has_many :ai_interactions, dependent: :destroy
   has_many :ai_effects, dependent: :destroy
+  has_many :ai_action_proposals, dependent: :destroy
   has_many :life_logs, dependent: :destroy
   has_many :family_knowledge, dependent: :destroy
   has_many :automation_rules, dependent: :destroy

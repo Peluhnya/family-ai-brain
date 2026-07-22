@@ -11,6 +11,10 @@ Rails.application.routes.draw do
     }
     resources :family_members, only: %i[create update destroy]
     resources :ai_interactions, only: :create
+    resources :ai_action_proposals, only: [] do
+      post :confirm, on: :member
+      post :reject, on: :member
+    end
     resources :conversations, only: [] do
       get :messages, on: :member
     end
