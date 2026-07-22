@@ -169,12 +169,16 @@ module FamilyBrain
     end
 
     def load_context_messages
-      @family.ai_interactions
+      interaction_scope
         .where("id < ?", @user_message.id)
         .order(id: :desc)
         .limit(CONTEXT_LIMIT)
         .reverse
         .to_a
+    end
+
+    def interaction_scope
+      @user_message.conversation&.ai_interactions || @family.ai_interactions
     end
 
     def conversation_block

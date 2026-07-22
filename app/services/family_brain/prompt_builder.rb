@@ -22,7 +22,7 @@ module FamilyBrain
     end
 
     def short_term_messages
-      @family.ai_interactions.where.not(id: @current_message.id).order(created_at: :desc).limit(SHORT_TERM_LIMIT).reverse
+      interaction_scope.where.not(id: @current_message.id).order(created_at: :desc).limit(SHORT_TERM_LIMIT).reverse
     end
 
     def prompt_metrics
@@ -34,6 +34,10 @@ module FamilyBrain
     end
 
     private
+
+    def interaction_scope
+      @current_message.conversation&.ai_interactions || @family.ai_interactions
+    end
 
     def account_context_block
       [

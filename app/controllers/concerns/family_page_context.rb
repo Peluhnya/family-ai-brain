@@ -2,11 +2,12 @@ module FamilyPageContext
   extend ActiveSupport::Concern
 
   FAMILY_TABS = %w[
-    chat documents reminders connections events tasks automations knowledge logs members
+    chat documents reminders connections events tasks automations knowledge logs ai_logs members
   ].freeze
+  AI_LOG_PAGE_SIZE = 10
 
   included do
-    helper_method :active_family_tab, :active_execution_filter
+    helper_method :active_family_tab, :active_execution_filter, :active_ai_log_type
   end
 
   private
@@ -17,7 +18,14 @@ module FamilyPageContext
 
   def normalize_family_tab(value)
     tab = value.to_s
+    return "chat" if tab == "ai_logs" && !ai_debug_ui_enabled?
+
     FAMILY_TABS.include?(tab) ? tab : "chat"
+  end
+
+  def active_ai_log_type
+    value = params[:log_type].to_s
+    %w[requests effects].include?(value) ? value : "requests"
   end
 
   def active_execution_filter
@@ -56,18 +64,17 @@ module FamilyPageContext
   def load_family_tab_data(tab, form_overrides)
     case tab
     when "chat"
-      @ai_interactions = @family.ai_interactions.includes(:user).order(:created_at)
+      @today_conversation = Conversation.find_or_build_for_family_at(family: @family)
+      @conversations = @family.conversations.recent_first.limit(30).to_a
+      @conversations.unshift(@today_conversation) unless @conversations.include?(@today_conversation)
+      @active_conversation = if params[:conversation_id].present?
+        @family.conversations.find_by(id: params[:conversation_id]) || @today_conversation
+      else
+        @today_conversation
+      end
+      load_active_conversation_messages
+      @viewing_today_conversation = @active_conversation == @today_conversation
       @ai_interaction = form_overrides.fetch(:ai_interaction, @family.ai_interactions.new)
-      @recent_ai_debug_interactions = if Rails.env.development? || Rails.env.test?
-        @family.ai_interactions.tracked_llm_requests.order(created_at: :desc).limit(5)
-      else
-        []
-      end
-      @recent_ai_effects = if (Rails.env.development? || Rails.env.test?) && ai_effect_tracking_available?
-        @family.ai_effects.includes(:source_ai_interaction).recent_first.limit(10)
-      else
-        []
-      end
     when "documents"
       @documents = @family.documents.recent_first.limit(20)
       @document_form = form_overrides.fetch(:document_form, selected_record(@family.documents, :edit_document_id) || @family.documents.new)
@@ -124,6 +131,8 @@ module FamilyPageContext
         selected_record(@family.life_logs, :edit_life_log_id) ||
           @family.life_logs.new(happened_at: Time.current, importance: 0.7, event_type: "routine")
       )
+    when "ai_logs"
+      load_ai_log_data
     when "members"
       @available_users = available_users_for(@account)
       @family_member_form = form_overrides.fetch(:family_member_form, selected_record(@family.family_members, :edit_family_member_id) || @family.family_members.new)
@@ -208,6 +217,52 @@ module FamilyPageContext
     AiEffect.table_exists?
   rescue ActiveRecord::NoDatabaseError, ActiveRecord::StatementInvalid
     false
+  end
+
+  def ai_debug_ui_enabled?
+    Rails.env.development? || Rails.env.test?
+  end
+
+  def load_active_conversation_messages
+    unless @active_conversation.persisted?
+      @ai_interactions = []
+      @has_older_messages = false
+      @older_messages_before_id = nil
+      return
+    end
+
+    page = FamilyBrain::ConversationMessagePage.new(conversation: @active_conversation)
+    @ai_interactions = page.messages
+    @has_older_messages = page.has_older?
+    @older_messages_before_id = page.before_id
+  end
+
+  def load_ai_log_data
+    request_scope = @family.ai_interactions.tracked_llm_requests
+    effects_available = ai_effect_tracking_available?
+    effect_scope = @family.ai_effects if effects_available
+
+    @ai_log_summary = {
+      requests_count: request_scope.count,
+      total_tokens: request_scope.sum(:tokens).to_i,
+      effects_count: effects_available ? effect_scope.count : 0,
+      failures_count: effects_available ? effect_scope.failures.count : 0
+    }
+
+    scope = if active_ai_log_type == "effects" && effects_available
+      effect_scope.includes(source_ai_interaction: :conversation).recent_first
+    elsif active_ai_log_type == "effects"
+      nil
+    else
+      request_scope.includes(:user, :conversation).order(created_at: :desc)
+    end
+
+    @ai_log_total_count = scope&.count.to_i
+    @ai_log_total_pages = [ (@ai_log_total_count.to_f / AI_LOG_PAGE_SIZE).ceil, 1 ].max
+    @ai_log_page = [ [ params[:page].to_i, 1 ].max, @ai_log_total_pages ].min
+    @ai_log_entries = scope ? scope.offset((@ai_log_page - 1) * AI_LOG_PAGE_SIZE).limit(AI_LOG_PAGE_SIZE) : []
+    @ai_log_range_start = @ai_log_total_count.zero? ? 0 : ((@ai_log_page - 1) * AI_LOG_PAGE_SIZE) + 1
+    @ai_log_range_end = [ @ai_log_page * AI_LOG_PAGE_SIZE, @ai_log_total_count ].min
   end
 
   def selected_record(scope, param_key)

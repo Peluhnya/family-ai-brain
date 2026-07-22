@@ -7,13 +7,14 @@ module FamiliesHelper
     { key: "documents", label: "Документи", icon: "document" },
     { key: "knowledge", label: "Знання", icon: "brain" },
     { key: "logs", label: "Історія", icon: "clock" },
+    { key: "ai_logs", label: "AI журнал", icon: "terminal", debug_only: true, count: false },
     { key: "members", label: "Люди", icon: "users" },
     { key: "connections", label: "Зв’язки", icon: "link" },
     { key: "automations", label: "Автоматизації", icon: "bolt" }
   ].freeze
 
   def family_tab_definitions
-    FAMILY_TAB_DEFINITIONS
+    FAMILY_TAB_DEFINITIONS.reject { |tab| tab[:debug_only] && !ai_debug_ui_enabled? }
   end
 
   def family_tab_href(family, tab_key)
@@ -22,13 +23,15 @@ module FamiliesHelper
 
   def family_tab_count(family, tab_key)
     case tab_key
-    when "chat" then family.ai_interactions.count
+    when "chat"
+      family.conversations.find_by(started_on: family.local_date)&.messages_count.to_i
     when "tasks" then family.tasks.active.count
     when "events" then family.events.upcoming_or_ongoing.count
     when "reminders" then family.reminders.active.count
     when "documents" then family.documents.count
     when "knowledge" then family.family_knowledge.count
     when "logs" then family.life_logs.count
+    when "ai_logs" then family.ai_interactions.tracked_llm_requests.count
     when "members" then family.family_members.count
     when "connections" then family.calendar_connections.where(active: true).count
     when "automations" then family.automation_rules.where(active: true).count
@@ -38,6 +41,18 @@ module FamiliesHelper
 
   def family_tab_count_dom_id(family, tab_key)
     "#{dom_id(family)}_tab_count_#{tab_key}"
+  end
+
+  def conversation_display_title(conversation, family)
+    today = family.local_date
+    return "Сьогодні · #{conversation.title}" if conversation.started_on == today
+    return "Вчора · #{conversation.title}" if conversation.started_on == today - 1.day
+
+    conversation.title
+  end
+
+  def conversation_message_count_dom_id(conversation)
+    "conversation_#{conversation.started_on.iso8601}_message_count"
   end
 
   def automation_execution_filter_options
@@ -89,12 +104,17 @@ module FamiliesHelper
   end
 
   def family_ai_usage_section_summary(interaction, limit: 2)
-    entries = interaction.section_usage.sort_by { |_, data| -data.fetch("tokens_estimate", 0).to_i }.first(limit)
+    sections = (interaction.llm_metadata || {}).fetch("sections", {})
+    entries = sections.sort_by { |_, data| -data.fetch("tokens_estimate", 0).to_i }.first(limit)
     return "no section data" if entries.empty?
 
     entries.map do |key, data|
       "#{key.to_s.humanize}: ~#{data.fetch('tokens_estimate', 0)}t"
     end.join(" | ")
+  end
+
+  def ai_log_filter_href(family, log_type, page: nil)
+    tab_family_path(family, tab: "ai_logs", log_type:, page:)
   end
 
   private

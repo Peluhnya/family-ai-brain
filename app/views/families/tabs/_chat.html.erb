@@ -1,9 +1,21 @@
 <div class="desk-grid">
   <div class="chat-shell">
+    <nav class="conversation-days" aria-label="Чати за днями">
+      <% @conversations.each do |conversation| %>
+        <% conversation_href = conversation.persisted? ? family_path(@family, conversation_id: conversation.id) : family_path(@family) %>
+        <%= link_to conversation_href,
+          class: conversation == @active_conversation ? "conversation-day active" : "conversation-day",
+          data: { turbo_frame: "family_tab_content", turbo_action: "advance" } do %>
+          <span><%= conversation_display_title(conversation, @family) %></span>
+          <small id="<%= conversation_message_count_dom_id(conversation) %>"><%= conversation.messages_count %></small>
+        <% end %>
+      <% end %>
+    </nav>
+
     <div class="chat-header">
       <div>
-        <p class="label-kicker">Ваш помічник</p>
-        <h2 class="entity-title text-3xl">Чим допомогти?</h2>
+        <p class="label-kicker">Денний чат</p>
+        <h2 class="entity-title text-3xl"><%= conversation_display_title(@active_conversation, @family) %></h2>
       </div>
       <div class="meta-row">
         <span class="status-pill">На зв’язку</span>
@@ -15,54 +27,21 @@
     </div>
 
     <div class="composer-shell">
-      <%= render "ai_interactions/form", family: @family, ai_interaction: @ai_interaction, active_tab: @active_family_tab %>
+      <% if @viewing_today_conversation %>
+        <%= render "ai_interactions/form", family: @family, ai_interaction: @ai_interaction, active_tab: @active_family_tab %>
+      <% else %>
+        <div class="archived-conversation-note">
+          <span>Це завершений денний чат.</span>
+          <%= link_to "Перейти до сьогодні",
+            family_path(@family, conversation_id: @today_conversation.id),
+            class: "cta-primary",
+            data: { turbo_frame: "family_tab_content", turbo_action: "advance" } %>
+        </div>
+      <% end %>
     </div>
   </div>
 
   <aside class="desk-column">
-    <% if ai_debug_ui_enabled? %>
-      <div class="data-card">
-        <p class="label-kicker">Dev only</p>
-        <h2 class="entity-title text-2xl">AI debug</h2>
-        <% if @recent_ai_debug_interactions.any? %>
-          <div class="mt-5 space-y-4 text-sm leading-7 text-[var(--ink-soft)]">
-            <% @recent_ai_debug_interactions.each do |interaction| %>
-              <div class="entity-card">
-                <p><strong><%= interaction.created_at.strftime("%Y-%m-%d %H:%M") %></strong> · <%= interaction.model %></p>
-                <p>input <strong><%= number_with_delimiter(interaction.input_tokens || interaction.estimated_input_tokens || 0) %></strong> · output <strong><%= number_with_delimiter(interaction.output_tokens.to_i) %></strong></p>
-                <p>system <strong>~<%= number_with_delimiter(interaction.system_prompt_tokens.to_i) %></strong> · short-term <strong>~<%= number_with_delimiter(interaction.short_term_tokens.to_i) %></strong> · user <strong>~<%= number_with_delimiter(interaction.user_message_tokens.to_i) %></strong></p>
-                <p><%= family_ai_usage_section_summary(interaction) %></p>
-              </div>
-            <% end %>
-          </div>
-        <% else %>
-          <div class="empty-state mt-5">
-            Debug-дані з’являться після першої AI-відповіді.
-          </div>
-        <% end %>
-
-        <% if @recent_ai_effects.any? %>
-          <div class="mt-5 space-y-3 text-sm leading-6 text-[var(--ink-soft)]">
-            <p class="label-kicker">Turn effects</p>
-            <% @recent_ai_effects.each do |effect| %>
-              <div class="entity-card">
-                <p><strong><%= effect.action_type.humanize %></strong> · <%= effect.status %></p>
-                <p>
-                  message <%= effect.source_ai_interaction_id %>
-                  <% if effect.entity_type.present? && effect.entity_id.present? %>
-                    · <%= effect.entity_type %> <%= effect.entity_id %>
-                  <% end %>
-                </p>
-                <% if effect.error_message.present? %>
-                  <p class="text-red-700"><%= effect.error_message %></p>
-                <% end %>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-
     <div class="data-card">
       <p class="label-kicker">Огляд</p>
       <h2 class="entity-title text-2xl">Зараз у фокусі</h2>

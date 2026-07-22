@@ -1,0 +1,139 @@
+<section class="ai-log-shell">
+  <header class="ai-log-header">
+    <div class="max-w-3xl">
+      <p class="label-kicker">Dev only · observability</p>
+      <h2 class="entity-title text-3xl">AI журнал простору</h2>
+      <p class="mt-3 muted-copy">
+        Тут зібрані технічні AI-запити та дії, які вони виконали. Чат лишається чистим, а діагностика — в одному місці.
+      </p>
+    </div>
+    <span class="meta-pill"><%= @family.name %></span>
+  </header>
+
+  <div class="ai-log-metrics" aria-label="AI log summary">
+    <article class="ai-log-metric">
+      <p class="label-kicker">LLM запити</p>
+      <p class="ai-log-metric-value"><%= number_with_delimiter(@ai_log_summary[:requests_count]) %></p>
+    </article>
+    <article class="ai-log-metric">
+      <p class="label-kicker">Використано токенів</p>
+      <p class="ai-log-metric-value"><%= number_with_delimiter(@ai_log_summary[:total_tokens]) %></p>
+    </article>
+    <article class="ai-log-metric">
+      <p class="label-kicker">Дії асистента</p>
+      <p class="ai-log-metric-value"><%= number_with_delimiter(@ai_log_summary[:effects_count]) %></p>
+    </article>
+    <article class="ai-log-metric">
+      <p class="label-kicker">Помилки дій</p>
+      <p class="ai-log-metric-value <%= "text-[var(--danger)]" if @ai_log_summary[:failures_count].positive? %>"><%= number_with_delimiter(@ai_log_summary[:failures_count]) %></p>
+    </article>
+  </div>
+
+  <div class="ai-log-toolbar">
+    <nav class="ai-log-switcher" aria-label="Тип записів журналу">
+      <% [["requests", "AI-запити"], ["effects", "Дії асистента"]].each do |type, label| %>
+        <% active = active_ai_log_type == type %>
+        <%= link_to label,
+          ai_log_filter_href(@family, type),
+          class: active ? "ai-log-filter active" : "ai-log-filter",
+          aria: { current: active ? "page" : nil },
+          data: { turbo_frame: "family_tab_content", turbo_action: "advance" } %>
+      <% end %>
+    </nav>
+    <p class="ai-log-range">
+      <% if @ai_log_total_count.positive? %>
+        <%= @ai_log_range_start %>–<%= @ai_log_range_end %> із <%= @ai_log_total_count %>
+      <% else %>
+        Записів немає
+      <% end %>
+    </p>
+  </div>
+
+  <div class="ai-log-list">
+    <% if @ai_log_entries.any? %>
+      <% @ai_log_entries.each do |entry| %>
+        <% if active_ai_log_type == "requests" %>
+          <article class="ai-log-entry" id="<%= dom_id(entry, :log) %>">
+            <div class="ai-log-entry-head">
+              <div>
+                <p class="label-kicker"><%= l(entry.created_at, format: :short) %></p>
+                <h3><%= entry.model.presence || "Невідома модель" %></h3>
+              </div>
+              <span class="log-status log-status-completed">LLM response</span>
+            </div>
+
+            <dl class="ai-log-token-grid">
+              <div><dt>Input</dt><dd><%= number_with_delimiter(entry.input_tokens || entry.estimated_input_tokens || 0) %></dd></div>
+              <div><dt>Output</dt><dd><%= number_with_delimiter(entry.output_tokens.to_i) %></dd></div>
+              <div><dt>System</dt><dd>~<%= number_with_delimiter(entry.system_prompt_tokens.to_i) %></dd></div>
+              <div><dt>History</dt><dd>~<%= number_with_delimiter(entry.short_term_tokens.to_i) %></dd></div>
+              <div><dt>User</dt><dd>~<%= number_with_delimiter(entry.user_message_tokens.to_i) %></dd></div>
+            </dl>
+
+            <div class="ai-log-details">
+              <p>Prompt: <strong><%= entry.prompt_version.presence || "—" %></strong></p>
+              <p>Контекст: <strong><%= entry.short_term_message_count.to_i %> повідомлень</strong></p>
+              <p>Найбільші секції: <strong><%= family_ai_usage_section_summary(entry) %></strong></p>
+            </div>
+            <p class="ai-log-preview"><%= truncate(entry.content.to_s, length: 260) %></p>
+            <%= link_to "Відкрити в чаті",
+              "#{family_path(@family, conversation_id: entry.conversation_id)}##{dom_id(entry)}",
+              class: "inline-link text-sm",
+              data: { turbo_frame: "family_tab_content", turbo_action: "advance" } %>
+          </article>
+        <% else %>
+          <article class="ai-log-entry" id="<%= dom_id(entry, :log) %>">
+            <div class="ai-log-entry-head">
+              <div>
+                <p class="label-kicker"><%= l(entry.created_at, format: :short) %></p>
+                <h3><%= entry.action_type.humanize %></h3>
+              </div>
+              <span class="log-status log-status-<%= entry.status %>"><%= entry.status.humanize %></span>
+            </div>
+
+            <div class="ai-log-details">
+              <p>Джерело: <strong>message #<%= entry.source_ai_interaction_id %></strong></p>
+              <p>
+                Результат:
+                <strong><%= entry.entity_type.present? && entry.entity_id.present? ? "#{entry.entity_type} ##{entry.entity_id}" : "без створеної сутності" %></strong>
+              </p>
+            </div>
+            <% if entry.error_message.present? %>
+              <p class="ai-log-error"><%= entry.error_message %></p>
+            <% end %>
+            <%= link_to "Відкрити повідомлення",
+              "#{family_path(@family, conversation_id: entry.source_ai_interaction.conversation_id)}##{dom_id(entry.source_ai_interaction)}",
+              class: "inline-link text-sm",
+              data: { turbo_frame: "family_tab_content", turbo_action: "advance" } %>
+          </article>
+        <% end %>
+      <% end %>
+    <% else %>
+      <div class="empty-state">
+        <%= active_ai_log_type == "requests" ? "AI-запити з’являться тут після першої завершеної відповіді." : "Асистент ще не виконував жодних дій у цьому просторі." %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @ai_log_total_pages > 1 %>
+    <nav class="pagination-shell" aria-label="Пагінація AI журналу">
+      <p>Сторінка <strong><%= @ai_log_page %></strong> із <strong><%= @ai_log_total_pages %></strong></p>
+      <div class="pagination-actions">
+        <% if @ai_log_page > 1 %>
+          <%= link_to "Назад",
+            ai_log_filter_href(@family, active_ai_log_type, page: @ai_log_page - 1),
+            class: "pagination-link",
+            rel: "prev",
+            data: { turbo_frame: "family_tab_content", turbo_action: "advance" } %>
+        <% end %>
+        <% if @ai_log_page < @ai_log_total_pages %>
+          <%= link_to "Далі",
+            ai_log_filter_href(@family, active_ai_log_type, page: @ai_log_page + 1),
+            class: "pagination-link",
+            rel: "next",
+            data: { turbo_frame: "family_tab_content", turbo_action: "advance" } %>
+        <% end %>
+      </div>
+    </nav>
+  <% end %>
+</section>

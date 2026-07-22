@@ -1,0 +1,11 @@
+<%= turbo_stream.prepend "chat_interactions" do %>
+  <%= render partial: "ai_interactions/interaction", collection: @ai_interactions %>
+<% end %>
+
+<%= turbo_stream.replace "older_chat_messages" do %>
+  <%= render "ai_interactions/load_older",
+    family: @family,
+    conversation: @conversation,
+    has_older_messages: @has_older_messages,
+    before_id: @older_messages_before_id %>
+<% end %>

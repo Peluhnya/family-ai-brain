@@ -1,0 +1,8 @@
+<div id="older_chat_messages" class="chat-history-loader">
+  <% if has_older_messages && before_id.present? %>
+    <%= link_to "Завантажити попередні повідомлення",
+      messages_family_conversation_path(family, conversation, before_id: before_id),
+      class: "cta-secondary",
+      data: { turbo_stream: true } %>
+  <% end %>
+</div>

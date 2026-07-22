@@ -8,3 +8,6 @@
 <%= turbo_stream.replace "ai_interaction_form" do %>
   <%= render "ai_interactions/form", family: @family, ai_interaction: @family.ai_interactions.new %>
 <% end %>
+<%= turbo_stream.replace conversation_message_count_dom_id(@conversation) do %>
+  <small id="<%= conversation_message_count_dom_id(@conversation) %>"><%= @conversation.reload.messages_count %></small>
+<% end %>

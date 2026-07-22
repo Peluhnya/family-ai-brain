@@ -1,8 +1,11 @@
+<%= render "ai_interactions/load_older",
+  family: @family,
+  conversation: @active_conversation,
+  has_older_messages: @has_older_messages,
+  before_id: @older_messages_before_id %>
 <div id="chat_interactions">
   <% if ai_interactions.any? %>
-    <% ai_interactions.each do |interaction| %>
-      <%= render "ai_interactions/interaction", interaction: interaction %>
-    <% end %>
+    <%= render partial: "ai_interactions/interaction", collection: ai_interactions %>
   <% else %>
     <div id="chat_empty_state" class="empty-state">
       Почніть із простого: запитайте про плани на день, попросіть створити нагадування або скласти список сімейних справ.

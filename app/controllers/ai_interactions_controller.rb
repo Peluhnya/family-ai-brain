@@ -5,14 +5,18 @@ class AiInteractionsController < ApplicationController
   before_action :set_family
 
   def create
+    @conversation = Conversation.for_family_at!(family: @family)
     @user_message = @family.ai_interactions.create!(
       user: current_user,
+      conversation: @conversation,
       role: "user",
       content: ai_interaction_params[:content],
       model: "human"
     )
 
     @assistant_message = @family.ai_interactions.create!(
+      conversation: @conversation,
+      reply_to: @user_message,
       role: "assistant",
       content: "Думаю...",
       model: FamilyBrain::AccountAiConfig.new(account: @family.account).chat_model,
@@ -41,6 +45,6 @@ class AiInteractionsController < ApplicationController
   end
 
   def ai_interaction_params
-    params.expect(ai_interaction: [:content])
+    params.expect(ai_interaction: [ :content ])
   end
 end

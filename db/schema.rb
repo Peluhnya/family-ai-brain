@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_223000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_231000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -53,6 +53,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_223000) do
 
   create_table "ai_interactions", force: :cascade do |t|
     t.text "content", null: false
+    t.bigint "conversation_id", null: false
     t.datetime "created_at", null: false
     t.bigint "family_id", null: false
     t.integer "input_tokens"
@@ -60,6 +61,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_223000) do
     t.string "model"
     t.integer "output_tokens"
     t.string "prompt_version"
+    t.bigint "reply_to_id"
     t.string "role", null: false
     t.integer "short_term_message_count"
     t.integer "short_term_tokens"
@@ -69,8 +71,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_223000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.integer "user_message_tokens"
+    t.index ["conversation_id", "id"], name: "index_ai_interactions_on_conversation_and_id"
+    t.index ["conversation_id"], name: "index_ai_interactions_on_conversation_id"
+    t.index ["created_at"], name: "index_ai_interactions_for_retention"
     t.index ["family_id", "created_at"], name: "index_ai_interactions_on_family_id_and_created_at"
     t.index ["family_id"], name: "index_ai_interactions_on_family_id"
+    t.index ["reply_to_id"], name: "index_ai_interactions_on_reply_to_id"
     t.index ["user_id"], name: "index_ai_interactions_on_user_id"
   end
 
@@ -127,6 +133,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_223000) do
     t.index ["family_id", "connection_fingerprint"], name: "index_calendar_connections_on_family_and_fingerprint", unique: true, where: "(connection_fingerprint IS NOT NULL)"
     t.index ["family_id"], name: "index_calendar_connections_on_family_id"
     t.index ["provider"], name: "index_calendar_connections_on_provider"
+  end
+
+  create_table "conversations", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "family_id", null: false
+    t.datetime "last_message_at"
+    t.integer "messages_count", default: 0, null: false
+    t.date "started_on", null: false
+    t.string "status", default: "active", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "started_on"], name: "index_conversations_on_family_id_and_started_on", unique: true
+    t.index ["family_id", "status", "last_message_at"], name: "idx_on_family_id_status_last_message_at_deedcb8c27"
+    t.index ["family_id"], name: "index_conversations_on_family_id"
+    t.index ["last_message_at"], name: "index_conversations_for_retention"
   end
 
   create_table "documents", force: :cascade do |t|
@@ -275,12 +296,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_223000) do
   add_foreign_key "accounts", "users"
   add_foreign_key "ai_effects", "ai_interactions", column: "source_ai_interaction_id"
   add_foreign_key "ai_effects", "families"
+  add_foreign_key "ai_interactions", "ai_interactions", column: "reply_to_id", on_delete: :nullify
+  add_foreign_key "ai_interactions", "conversations"
   add_foreign_key "ai_interactions", "families"
   add_foreign_key "ai_interactions", "users"
   add_foreign_key "automation_rule_executions", "automation_rules"
   add_foreign_key "automation_rule_executions", "families"
   add_foreign_key "automation_rules", "families"
   add_foreign_key "calendar_connections", "families"
+  add_foreign_key "conversations", "families"
   add_foreign_key "documents", "families"
   add_foreign_key "events", "families"
   add_foreign_key "families", "accounts"

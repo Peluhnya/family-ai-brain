@@ -5,9 +5,11 @@
       <%= ui_icon(tab[:icon], class_name: "family-tab-icon") %>
       <span class="family-tab-main">
         <span class="family-tab-label"><%= tab[:label] %></span>
-        <span class="family-tab-count" id="<%= family_tab_count_dom_id(family, tab[:key]) %>">
-          <%= render "families/tab_count", family: family, tab_key: tab[:key] %>
-        </span>
+        <% if tab.fetch(:count, true) %>
+          <span class="family-tab-count" id="<%= family_tab_count_dom_id(family, tab[:key]) %>">
+            <%= render "families/tab_count", family: family, tab_key: tab[:key] %>
+          </span>
+        <% end %>
       </span>
     <% end %>
   <% end %>

@@ -1,6 +1,7 @@
 class Family < ApplicationRecord
   belongs_to :account
   has_many :family_members, dependent: :destroy
+  has_many :conversations, dependent: :destroy
   has_many :ai_interactions, dependent: :destroy
   has_many :ai_effects, dependent: :destroy
   has_many :life_logs, dependent: :destroy
@@ -17,4 +18,9 @@ class Family < ApplicationRecord
   encrypts :name, :timezone, :locale
 
   validates :name, presence: true
+
+  def local_date(at = Time.current)
+    zone = ActiveSupport::TimeZone[timezone.presence] || Time.zone
+    at.in_time_zone(zone).to_date
+  end
 end
