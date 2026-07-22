@@ -78,9 +78,10 @@ module FamilyBrain
       title = task_payload["title"].to_s.strip
       evidence = task_payload["evidence"].to_s.strip
       return if title.blank?
-      return unless FamilyBrain::GroundedExtraction.meaningful_phrase?(title)
+      return unless FamilyBrain::GroundedExtraction.meaningful_title?(title)
       return unless FamilyBrain::GroundedExtraction.evidence_present?(@text, evidence)
-      return unless FamilyBrain::GroundedExtraction.title_grounded_in_evidence?(title, evidence)
+      title = FamilyBrain::GroundedExtraction.grounded_title(title, evidence)
+      return unless title
       return if duplicate_open_task?(title)
 
       @family.tasks.create!(

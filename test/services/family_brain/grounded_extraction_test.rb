@@ -6,6 +6,10 @@ module FamilyBrain
       assert GroundedExtraction.meaningful_phrase?("Подзвонити мамі")
       assert_not GroundedExtraction.meaningful_phrase?("Do")
       assert_not GroundedExtraction.meaningful_phrase?("Пам'ятайте (Remember)")
+
+      assert GroundedExtraction.meaningful_title?("Відпустка")
+      assert GroundedExtraction.meaningful_title?("Urlaub")
+      assert_not GroundedExtraction.meaningful_title?("Do")
     end
 
     test "requires exact evidence from the user text" do
@@ -20,6 +24,11 @@ module FamilyBrain
 
       assert GroundedExtraction.title_grounded_in_evidence?("Подзвонити мамі", evidence)
       assert_not GroundedExtraction.title_grounded_in_evidence?("Перевірка інформації", evidence)
+      assert_equal "Відпустку", GroundedExtraction.grounded_title(
+        "Нагадування про відпустку",
+        "я маю відпустку з 10 червня"
+      )
+      assert_nil GroundedExtraction.grounded_title("Перевірка інформації", evidence)
     end
 
     test "detects reminder and temporal intent" do

@@ -70,9 +70,10 @@ module FamilyBrain
       title = event_payload["title"].to_s.strip
       evidence = event_payload["evidence"].to_s.strip
       return if title.blank?
-      return unless FamilyBrain::GroundedExtraction.meaningful_phrase?(title)
+      return unless FamilyBrain::GroundedExtraction.meaningful_title?(title)
       return unless FamilyBrain::GroundedExtraction.evidence_present?(@text, evidence)
-      return unless FamilyBrain::GroundedExtraction.title_grounded_in_evidence?(title, evidence)
+      title = FamilyBrain::GroundedExtraction.grounded_title(title, evidence)
+      return unless title
       return unless FamilyBrain::GroundedExtraction.temporal_reference?(evidence)
 
       start_time = normalize_start_time(event_payload["start_in_days"])

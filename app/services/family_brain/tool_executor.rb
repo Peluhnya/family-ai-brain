@@ -209,8 +209,12 @@ module FamilyBrain
 
     def validate_title!(action)
       title = action["title"].to_s.strip
-      raise ArgumentError, error_message(:title_blank) unless FamilyBrain::GroundedExtraction.meaningful_phrase?(title)
-      raise ArgumentError, error_message(:title_unverified) unless FamilyBrain::GroundedExtraction.title_grounded_in_evidence?(title, evidence_text(action))
+      raise ArgumentError, error_message(:title_blank) unless FamilyBrain::GroundedExtraction.meaningful_title?(title)
+
+      grounded_title = FamilyBrain::GroundedExtraction.grounded_title(title, evidence_text(action))
+      raise ArgumentError, error_message(:title_unverified) unless grounded_title
+
+      action["title"] = grounded_title
     end
 
     def validate_evidence!(action)

@@ -1,13 +1,18 @@
 module FamilyBrain
   class MemoryProcessor
-    def initialize(family:, user_message:, now: Time.current)
+    def initialize(family:, user_message:, assistant_message: nil, now: Time.current)
       @family = family
       @user_message = user_message
+      @assistant_message = assistant_message
       @now = now
     end
 
     def call
       trigger_chat_keyword_automations
+
+      return { life_logs: [], knowledge: [] } unless FamilyBrain::MemoryTurnPolicy.new(
+        assistant_message: @assistant_message
+      ).extractable?
 
       {
         life_logs: FamilyBrain::LifeLogSyncService.new(

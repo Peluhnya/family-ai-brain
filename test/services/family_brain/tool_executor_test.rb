@@ -51,6 +51,35 @@ module FamilyBrain
       assert_empty @family.family_knowledge
     end
 
+    test "accepts a one-word event title grounded in the user message" do
+      text = "Створи подію Відпустка з 10 серпня по 24 серпня"
+      message = user_message(text)
+
+      result = executor(message, text).call([
+        action(kind: "create_event", title: "Відпустка", all_day: true, evidence: [ text ])
+      ]).first
+
+      assert_equal "created", result.status, result.message
+      assert_equal "Відпустка", @family.events.last.title
+    end
+
+    test "reduces a generated reminder wrapper to words grounded in the user message" do
+      text = "Я маю відпустку з 10 серпня"
+      message = user_message(text)
+
+      result = executor(message, text).call([
+        action(
+          kind: "create_reminder",
+          title: "Нагадування про відпустку",
+          trigger_at: "2026-08-09T18:00:00+02:00",
+          evidence: [ text ]
+        )
+      ]).first
+
+      assert_equal "created", result.status, result.message
+      assert_equal "Відпустку", @family.reminders.last.title
+    end
+
     test "combines credit and time follow-ups into a task and reminder" do
       credit_text = "до пятгниці мені потрібно проплатити кредит на 240 євро"
       time_text = "о 10 ранку"

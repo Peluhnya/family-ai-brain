@@ -67,9 +67,10 @@ module FamilyBrain
       title = reminder_payload["title"].to_s.strip
       evidence = reminder_payload["evidence"].to_s.strip
       return if title.blank?
-      return unless FamilyBrain::GroundedExtraction.meaningful_phrase?(title)
+      return unless FamilyBrain::GroundedExtraction.meaningful_title?(title)
       return unless FamilyBrain::GroundedExtraction.evidence_present?(@text, evidence)
-      return unless FamilyBrain::GroundedExtraction.title_grounded_in_evidence?(title, evidence)
+      title = FamilyBrain::GroundedExtraction.grounded_title(title, evidence)
+      return unless title
       return unless FamilyBrain::GroundedExtraction.reminder_intent?(evidence)
       return if duplicate_active_reminder?(title)
 

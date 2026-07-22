@@ -9,12 +9,12 @@ module FamilyBrain
             type: "object",
             properties: {
               key: { type: "string" },
-              value: { type: "string" },
+              durable: { type: "boolean" },
               evidence: { type: "string" },
               confidence: { type: "number" },
               source: { type: "string" }
             },
-            required: %w[key value evidence confidence source],
+            required: %w[key durable evidence confidence source],
             additionalProperties: false
           }
         }
@@ -62,11 +62,13 @@ module FamilyBrain
         Extract only stable semantic family facts explicitly stated by the user.
         Stable facts include durable preferences, relationships, recurring rules, important attributes and reusable constraints.
         Do not extract future or past calendar occurrences, vacations, camps, trips, appointments, deadlines, tasks, reminders, one-off experiences, or assistant suggestions.
+        If USER TEXT is a request, command, correction, or operational instruction, return an empty list.
+        Set durable=true only when the exact quote itself is reusable beyond one occurrence. Otherwise return an empty list.
         A completed experience belongs to episodic memory. Only a durable conclusion explicitly stated by the user belongs here, for example "our family enjoys hiking in the mountains".
         Return up to 5 facts.
         Keys must be snake_case and reusable.
-        Values must be concise factual statements in #{FamilyBrain::LocaleCatalog.language_name(@locale)} (#{@locale}).
-        Evidence must be an exact short quote from the supplied text. Do not paraphrase evidence.
+        Evidence must be an exact, self-contained quote from the supplied text. The evidence itself becomes the saved value.
+        Never generate, summarise, translate, negate or otherwise paraphrase the user's statement.
         Confidence must be between 0.0 and 1.0.
         Source should be "#{@source}" unless the text clearly indicates another source.
 
@@ -76,12 +78,16 @@ module FamilyBrain
     end
 
     def upsert_fact(fact)
+      return unless fact["durable"] == true
+
       key = fact["key"].to_s.strip
-      value = fact["value"].to_s.strip
       evidence = fact["evidence"].to_s.strip
-      return if key.blank? || value.blank?
+      return if key.blank?
       return unless FamilyBrain::GroundedExtraction.evidence_present?(@text, evidence)
+      return unless FamilyBrain::GroundedExtraction.meaningful_phrase?(evidence)
       return if time_bounded_occurrence?(evidence)
+
+      value = evidence
 
       knowledge = @family.family_knowledge.find_or_initialize_by(key: key)
       knowledge.value = value

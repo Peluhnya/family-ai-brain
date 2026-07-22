@@ -29,14 +29,13 @@ module FamilyBrain
     FUTURE_PATTERN = %r{
       \b(?:завтра|післязавтра|буде|будемо|піде|поїде|поїдемо|планує|збираєть|має\s+відпустку|
       tomorrow|day\s+after\s+tomorrow|will|going\s+to|plan(?:s|ning)?|vacation\s+starts?|
-      morgen|übermorgen|uebermorgen|wird|werden|plan(?:e|t|en)|vorhab(?:e|en)|urlaub)\b
+      morgen|übermorgen|uebermorgen|wird|werden|plan(?:e|t|en)|vorhab(?:e|en)|urlaub\s+(?:beginnt|startet))\b
     }ixu
     DURABLE_TEMPORAL_PATTERN = %r{
       \b(?:завжди|зазвичай|щороку|кожн(?:ого|ої|і|у)|народив|народила|день\s+народження|
       always|usually|every|annually|born|birthday|
       immer|normalerweise|jed(?:e|er|es|en)|jährlich|jaehrlich|geboren|geburtstag)\b
     }ixu
-
     module_function
 
     def meaningful_phrase?(text)
@@ -44,6 +43,15 @@ module FamilyBrain
       return false if normalized.empty?
       return false if normalized.length < MIN_CHARS
       return false if words(text).size < MIN_WORDS
+      return false if translation_artifact?(text)
+
+      true
+    end
+
+    def meaningful_title?(text)
+      normalized = normalize_text(text)
+      return false if normalized.length < 3
+      return false if words(text).empty?
       return false if translation_artifact?(text)
 
       true
@@ -68,6 +76,21 @@ module FamilyBrain
         evidence_tokens.any? { |evidence_token| token_equivalent?(title_token, evidence_token) }
       end
       missing_tokens.empty? || (title_tokens.size >= 3 && missing_tokens.size == 1)
+    end
+
+    def grounded_title(title, evidence)
+      stripped_title = title.to_s.strip
+      return stripped_title if meaningful_title?(stripped_title) && title_grounded_in_evidence?(stripped_title, evidence)
+
+      title_tokens = significant_tokens(stripped_title)
+      matching_evidence_words = evidence.to_s.scan(/\p{L}[\p{L}\p{N}]*/u).select do |evidence_word|
+        title_tokens.any? { |title_token| token_equivalent?(title_token, evidence_word.downcase) }
+      end.uniq { |word| word.downcase }
+      candidate = matching_evidence_words.join(" ").strip
+      return unless meaningful_title?(candidate)
+      return unless title_grounded_in_evidence?(candidate, evidence)
+
+      candidate.sub(/\A\p{Ll}/u) { |character| character.upcase }
     end
 
     def temporal_reference?(text, locale: nil, reference_time: Time.current, timezone: nil)

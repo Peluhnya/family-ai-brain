@@ -8,13 +8,13 @@ module FamilyBrain
           items: {
             type: "object",
             properties: {
-              event_type: { type: "string" },
-              summary: { type: "string" },
+              event_type: { type: "string", enum: %w[family_moment trip celebration achievement health milestone other] },
+              occurred: { type: "boolean" },
               evidence: { type: "string" },
               importance: { type: "number" },
               happened_at: { type: "string" }
             },
-            required: %w[event_type summary evidence importance happened_at],
+            required: %w[event_type occurred evidence importance happened_at],
             additionalProperties: false
           }
         }
@@ -63,9 +63,11 @@ module FamilyBrain
         Examples: a completed vacation, celebration, achievement, memorable outing, illness episode or important family moment.
         Do not extract future plans, calendar events, tasks, reminders, questions, intentions or assistant statements.
         Do not extract ordinary conversational filler.
+        If USER TEXT is a request, command, correction, plan, or says that nothing happened, return an empty list.
+        Set occurred=true only when the exact quote itself explicitly reports that the experience already happened. Otherwise return an empty list.
         Return at most 3 episodic memories.
-        Use concise #{FamilyBrain::LocaleCatalog.language_name(@locale)} (#{@locale}) for event_type and summary.
-        Evidence must be an exact quote from USER TEXT.
+        event_type must be one of: family_moment, trip, celebration, achievement, health, milestone, other.
+        Evidence must be an exact, self-contained quote from USER TEXT. It becomes the saved summary, so never generate or paraphrase a summary.
         happened_at must be ISO 8601 with offset and cannot be in the future.
         If the experience is clearly completed but no exact time is stated, use CURRENT TIME.
         importance must be between 0.0 and 1.0.
@@ -79,12 +81,15 @@ module FamilyBrain
     end
 
     def create_life_log(entry)
+      return unless entry["occurred"] == true
+
       evidence = entry["evidence"].to_s.strip
-      summary = entry["summary"].to_s.strip
-      event_type = entry["event_type"].to_s.strip
       return unless FamilyBrain::GroundedExtraction.evidence_present?(@text, evidence)
-      return unless FamilyBrain::GroundedExtraction.meaningful_phrase?(summary)
-      return if future_experience?(evidence)
+      return unless FamilyBrain::GroundedExtraction.meaningful_phrase?(evidence)
+      return if future_experience?(@text) || future_experience?(evidence)
+
+      summary = evidence
+      event_type = normalized_event_type(entry["event_type"])
 
       happened_at = @date_parser.parse_datetime(entry["happened_at"], default_hour: @now.hour) || @now
       return if happened_at > @now + 5.minutes
@@ -108,6 +113,11 @@ module FamilyBrain
       @family.life_logs.where(happened_at: (happened_at - 1.day)..(happened_at + 1.day)).detect do |life_log|
         FamilyBrain::GroundedExtraction.normalize_text(life_log.summary) == normalized
       end.present?
+    end
+
+    def normalized_event_type(value)
+      allowed = LIFE_LOG_SCHEMA.dig(:properties, :life_logs, :items, :properties, :event_type, :enum)
+      allowed.include?(value.to_s) ? value.to_s : "other"
     end
 
     def future_experience?(evidence)
