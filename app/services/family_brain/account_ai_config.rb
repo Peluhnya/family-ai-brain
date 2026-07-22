@@ -7,6 +7,16 @@ module FamilyBrain
     OLLAMA_DEFAULT_EMBEDDING_MODEL = "nomic-embed-text".freeze
     OLLAMA_DEFAULT_NUM_CTX = 4096
 
+    class << self
+      def app_openai_api_key
+        ENV["OPENAI_API_KEY"].presence || Rails.application.credentials.dig(:openai, :api_key).presence
+      end
+
+      def app_openai_chat_model
+        ENV["AI_CHAT_MODEL"].presence || Rails.application.credentials.dig(:openai, :chat_model).presence || OPENAI_DEFAULT_CHAT_MODEL
+      end
+    end
+
     def initialize(account:)
       @account = account
     end
@@ -102,7 +112,7 @@ module FamilyBrain
     def env_api_key
       return ENV["OLLAMA_API_KEY"] if ollama?
 
-      ENV["OPENAI_API_KEY"]
+      self.class.app_openai_api_key
     end
 
     def env_api_base
@@ -115,7 +125,7 @@ module FamilyBrain
       if ollama?
         ENV["OLLAMA_CHAT_MODEL"].presence || ENV["AI_CHAT_MODEL"].presence || OLLAMA_DEFAULT_CHAT_MODEL
       else
-        ENV["AI_CHAT_MODEL"].presence || OPENAI_DEFAULT_CHAT_MODEL
+        self.class.app_openai_chat_model
       end
     end
 

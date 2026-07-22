@@ -10,8 +10,8 @@
     <%= form.button class: "cta-primary cursor-pointer" do %>
       <span>Надіслати</span><%= ui_icon("send") %>
     <% end %>
-    <% if ENV["OPENAI_API_KEY"].blank? && !family.account.ollama? %>
-      <span class="meta-pill">OPENAI_API_KEY missing: зараз працює fallback reply</span>
+    <% unless FamilyBrain::AccountAiConfig.new(account: family.account).available? %>
+      <span class="meta-pill">AI не налаштований: зараз працює fallback reply</span>
     <% end %>
   </div>
 <% end %>

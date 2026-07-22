@@ -31,45 +31,110 @@
     <span>Акаунт активний і готовий для створення сімей</span>
   </label>
 
-  <div class="rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-5">
+  <% effective_provider = account.ai_access_mode == "personal_api_key" ? account.ai_provider : "openai" %>
+  <% selected_model = account.ai_model.presence || FamilyBrain::AiModelCatalog.default_for(effective_provider) %>
+  <% custom_model = !FamilyBrain::AiModelCatalog.known_model?(effective_provider, selected_model) %>
+
+  <div
+    class="rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-5"
+    data-controller="ai-settings"
+    data-ai-settings-models-value="<%= FamilyBrain::AiModelCatalog.form_payload.to_json %>"
+    data-ai-settings-selected-model-value="<%= selected_model %>"
+    data-ai-settings-custom-model-value-value="<%= FamilyBrain::AiModelCatalog::CUSTOM_MODEL_VALUE %>"
+    data-ai-settings-api-key-saved-value="<%= account.ai_api_key.present? %>"
+  >
     <p class="label-kicker">AI access</p>
     <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]">Підключення AI</h3>
-    <p class="mt-3 muted-copy">Можна використовувати загальну LLM-конфігурацію застосунку, власний ключ провайдера або підключити власний ChatGPT/OpenAI акаунт через персональний OpenAI API key.</p>
+    <p class="mt-3 muted-copy">Оберіть один зрозумілий режим — решта форми налаштується автоматично.</p>
 
     <div class="mt-5 space-y-5">
-      <div class="form-grid">
-        <div>
-          <%= form.label :ai_access_mode, "Режим доступу", class: "form-label" %>
-          <%= form.select :ai_access_mode, [["Use app default AI", "app_default"], ["Use my ChatGPT/OpenAI account", "chatgpt_account"], ["Use my own API key", "personal_api_key"]], {}, class: "form-select" %>
-        </div>
-        <div>
-          <%= form.label :ai_provider, "Provider type", class: "form-label" %>
-          <%= form.select :ai_provider, [["ChatGPT / OpenAI", "openai"], ["OpenAI-compatible", "openai_compatible"], ["Ollama", "ollama"]], {}, class: "form-select" %>
-        </div>
+      <div>
+        <%= form.label :ai_access_mode, "Як підключити AI", class: "form-label" %>
+        <%= form.select :ai_access_mode,
+          [
+            ["AI застосунку — без власного ключа", "app_default"],
+            ["Мій OpenAI API key", "chatgpt_account"],
+            ["Інший AI-сервіс або локальний Ollama", "personal_api_key"]
+          ],
+          {},
+          class: "form-select",
+          data: { ai_settings_target: "mode", action: "change->ai-settings#modeChanged" } %>
+        <p class="mt-2 text-xs leading-5 text-[var(--muted)]" data-ai-settings-target="modeHelp"></p>
       </div>
 
-      <div class="form-grid">
-        <div>
-          <%= form.label :ai_api_key, "OpenAI / provider API key", class: "form-label" %>
-          <%= form.password_field :ai_api_key, class: "form-input", placeholder: account.personal_ai? && account.ai_api_key.present? ? "Saved securely" : "Paste your OpenAI project key (sk-...) for ChatGPT/OpenAI; optional for Ollama" %>
-          <% if account.ai_api_key.present? %>
-            <p class="mt-2 text-xs text-[var(--muted)]">Saved key: <%= account.masked_ai_api_key %></p>
-          <% end %>
-        </div>
-        <div>
-          <%= form.label :ai_model, "ChatGPT / chat model", class: "form-label" %>
-          <%= form.text_field :ai_model, class: "form-input", placeholder: "gpt-4o-mini, gpt-4o, gemma3:1b, qwen2.5:3b..." %>
-        </div>
+      <div data-ai-settings-target="providerSection" <%= "hidden" unless account.ai_access_mode == "personal_api_key" %>>
+        <%= form.label :ai_provider, "AI provider", class: "form-label" %>
+        <%= form.select :ai_provider,
+          [
+            ["OpenAI-compatible сервіс", "openai_compatible"],
+            ["Ollama — локально на своєму комп’ютері/сервері", "ollama"],
+            ["OpenAI API", "openai"]
+          ],
+          {},
+          class: "form-select",
+          data: { ai_settings_target: "provider", action: "change->ai-settings#providerChanged" } %>
+        <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Якщо потрібен звичайний OpenAI, зручніше вибрати режим «Мій OpenAI API key» вище.</p>
+      </div>
+
+      <div data-ai-settings-target="apiKeySection" <%= "hidden" if account.ai_access_mode == "app_default" || (account.ai_access_mode == "personal_api_key" && effective_provider == "ollama") %>>
+        <%= form.label :ai_api_key, "API key", class: "form-label" %>
+        <%= form.password_field :ai_api_key,
+          class: "form-input",
+          placeholder: account.personal_ai? && account.ai_api_key.present? ? "Ключ уже збережено — залиште порожнім, щоб не змінювати" : "Вставте API key",
+          autocomplete: "new-password",
+          required: account.personal_ai? && !account.ollama? && account.ai_api_key.blank?,
+          data: { ai_settings_target: "apiKey" } %>
+        <p class="mt-2 text-xs leading-5 text-[var(--muted)]" data-ai-settings-target="apiKeyHelp"></p>
+        <% if account.ai_api_key.present? %>
+          <p class="mt-1 text-xs text-[var(--muted)]">Збережений ключ: <%= account.masked_ai_api_key %></p>
+        <% end %>
+      </div>
+
+      <div data-ai-settings-target="apiBaseSection" <%= "hidden" unless account.ai_access_mode == "personal_api_key" && effective_provider != "openai" %>>
+        <%= form.label :ai_api_base, "API endpoint", class: "form-label" %>
+        <%= form.url_field :ai_api_base,
+          class: "form-input",
+          placeholder: effective_provider == "ollama" ? "http://localhost:11434/v1" : "https://provider.example.com/v1",
+          data: { ai_settings_target: "apiBase" } %>
+        <p class="mt-2 text-xs leading-5 text-[var(--muted)]" data-ai-settings-target="apiBaseHelp"></p>
       </div>
 
       <div>
-        <%= form.label :ai_api_base, "Custom API base URL", class: "form-label" %>
-        <%= form.text_field :ai_api_base, class: "form-input", placeholder: "https://api.openai.com/v1, custom /v1 endpoint, or http://localhost:11434/v1" %>
-        <p class="mt-2 text-xs text-[var(--muted)]">For ChatGPT/OpenAI this can stay blank to use the official OpenAI endpoint. For OpenAI-compatible providers use a `/v1` endpoint. For Ollama the default is `http://localhost:11434/v1`.</p>
+        <%= form.label :ai_model, "Модель для чату", class: "form-label" %>
+        <%= form.select :ai_model,
+          options_for_select(
+            FamilyBrain::AiModelCatalog::MODELS.fetch(effective_provider).map { |entry| [entry.fetch(:label), entry.fetch(:value)] } +
+              [["Інша модель — вказати model ID вручну", FamilyBrain::AiModelCatalog::CUSTOM_MODEL_VALUE]],
+            custom_model ? FamilyBrain::AiModelCatalog::CUSTOM_MODEL_VALUE : selected_model
+          ),
+          {},
+          class: "form-select",
+          data: { ai_settings_target: "model", action: "change->ai-settings#modelChanged" } %>
+        <p class="mt-2 text-xs leading-5 text-[var(--muted)]" data-ai-settings-target="modelHelp"></p>
       </div>
 
-      <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-        <strong>ChatGPT account note:</strong> Family AI Brain cannot sign in with your chat.openai.com browser session. Choose “Use my ChatGPT/OpenAI account” and paste an OpenAI API key from the same OpenAI account to route family chat through your personal OpenAI billing instead of the app default or local Ollama.
+      <div data-ai-settings-target="customModelSection" <%= "hidden" unless custom_model %>>
+        <%= form.label :ai_model_custom, "Model ID", class: "form-label" %>
+        <%= form.text_field :ai_model_custom,
+          value: custom_model ? selected_model : nil,
+          class: "form-input",
+          placeholder: "Наприклад: llama3.3:latest або model-name",
+          disabled: !custom_model,
+          data: { ai_settings_target: "customModel" } %>
+      </div>
+
+      <div class="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950" data-ai-settings-target="openaiKeyGuide" <%= "hidden" unless account.chatgpt_account? || (account.ai_access_mode == "personal_api_key" && effective_provider == "openai") %>>
+        <p class="font-semibold">Де взяти OpenAI API key</p>
+        <ol class="mt-2 list-decimal space-y-1 pl-5">
+          <li>Увійдіть на <%= link_to "OpenAI API Platform", "https://platform.openai.com/", target: "_blank", rel: "noopener noreferrer", class: "font-semibold underline" %> своїм OpenAI-акаунтом.</li>
+          <li>За потреби налаштуйте окремий <%= link_to "API billing", "https://platform.openai.com/settings/organization/billing/overview", target: "_blank", rel: "noopener noreferrer", class: "font-semibold underline" %>. Підписка ChatGPT Plus/Pro не включає оплату API.</li>
+          <li>Відкрийте <%= link_to "API keys", "https://platform.openai.com/api-keys", target: "_blank", rel: "noopener noreferrer", class: "font-semibold underline" %>, натисніть <strong>Create new secret key</strong> і одразу скопіюйте ключ.</li>
+          <li>Вставте ключ у поле вище, збережіть акаунт і натисніть <strong>Test AI connection</strong>.</li>
+        </ol>
+      </div>
+
+      <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900" data-ai-settings-target="openaiKeyGuide" <%= "hidden" unless account.chatgpt_account? || (account.ai_access_mode == "personal_api_key" && effective_provider == "openai") %>>
+        <strong>Важливо:</strong> це підключення до OpenAI API, а не імпорт браузерної сесії ChatGPT. Family AI Brain ніколи не просить і не зберігає ваш логін чи пароль OpenAI. Авторизація ChatGPT в Apple Intelligence/Siri працює через окрему офіційну інтеграцію і не може бути повторно використана тут як API-доступ.
       </div>
     </div>
   </div>

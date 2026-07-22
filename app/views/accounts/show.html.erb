@@ -185,9 +185,12 @@
           <% if @account.ollama? %>
             <p>Ollama context: <strong><%= ai_config.chat_params[:num_ctx] %></strong></p>
           <% end %>
-          <p>Key status: <strong><%= @account.ollama? ? (ai_config.api_key.present? ? "configured" : "not required") : (@account.personal_ai? ? (@account.ai_api_key.present? ? "saved securely" : "missing") : (ENV["OPENAI_API_KEY"].present? ? "app key available" : "app key missing")) %></strong></p>
+          <p>Key status: <strong><%= @account.ollama? ? (ai_config.api_key.present? ? "configured" : "not required") : (@account.personal_ai? ? (@account.ai_api_key.present? ? "saved securely" : "missing") : (ai_config.api_key.present? ? "app key available" : "app key missing")) %></strong></p>
           <% if @account.chatgpt_account? %>
-            <p class="rounded-2xl bg-amber-50 p-3 text-amber-900">ChatGPT account mode uses a personal OpenAI API key from your OpenAI account; browser ChatGPT sessions are not imported.</p>
+            <p class="rounded-2xl bg-amber-50 p-3 text-amber-900">
+              This mode uses an OpenAI API key, not a browser ChatGPT session. ChatGPT subscriptions and API usage are billed separately.
+              <%= link_to "Create an API key", "https://platform.openai.com/api-keys", target: "_blank", rel: "noopener noreferrer", class: "font-semibold underline" %>.
+            </p>
           <% end %>
           <% if @account.personal_ai? && @account.ai_api_key.present? %>
             <p>Saved key: <strong><%= @account.masked_ai_api_key %></strong></p>

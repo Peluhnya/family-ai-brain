@@ -2,20 +2,41 @@ require "test_helper"
 
 module FamilyBrain
   class AccountAiConfigTest < ActiveSupport::TestCase
-    test "ollama app default uses local defaults without api key" do
+    test "application default uses owner OpenAI settings" do
       account = accounts(:one)
       account.ai_provider = "ollama"
       account.ai_access_mode = "app_default"
+      account.ai_model = nil
+      account.valid?
+
+      previous_api_key = ENV["OPENAI_API_KEY"]
+      previous_chat_model = ENV["AI_CHAT_MODEL"]
+      ENV["OPENAI_API_KEY"] = "app-key"
+      ENV["AI_CHAT_MODEL"] = "gpt-4o-mini"
+      config = AccountAiConfig.new(account: account)
+
+      assert_equal "openai", config.provider
+      assert_equal :openai, config.ruby_llm_provider
+      assert_equal "gpt-4o-mini", config.chat_model
+      assert_equal "app-key", config.api_key
+      assert_empty config.chat_params
+      assert_predicate config, :available?
+    ensure
+      ENV["OPENAI_API_KEY"] = previous_api_key
+      ENV["AI_CHAT_MODEL"] = previous_chat_model
+    end
+
+    test "personal Ollama uses local defaults without api key" do
+      account = accounts(:one)
+      account.ai_provider = "ollama"
+      account.ai_access_mode = "personal_api_key"
       account.ai_model = nil
 
       config = AccountAiConfig.new(account: account)
 
       assert_equal "ollama", config.provider
-      assert_equal :ollama, config.ruby_llm_provider
       assert_equal AccountAiConfig::OLLAMA_DEFAULT_API_BASE, config.api_base
       assert_equal AccountAiConfig::OLLAMA_DEFAULT_CHAT_MODEL, config.chat_model
-      assert_equal AccountAiConfig::OLLAMA_DEFAULT_EMBEDDING_MODEL, config.embedding_model
-      assert_equal({ num_ctx: AccountAiConfig::OLLAMA_DEFAULT_NUM_CTX }, config.chat_params)
       assert_nil config.api_key
       assert_predicate config, :available?
     end

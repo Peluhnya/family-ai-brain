@@ -2,6 +2,8 @@ class Account < ApplicationRecord
   AI_ACCESS_MODES = %w[app_default personal_api_key chatgpt_account].freeze
   AI_PROVIDERS = %w[openai openai_compatible ollama].freeze
 
+  attr_accessor :ai_model_custom
+
   belongs_to :user
   has_many :families, dependent: :destroy
   has_many :ai_interactions, through: :families
@@ -12,6 +14,7 @@ class Account < ApplicationRecord
   validates :email, presence: true
   validates :ai_access_mode, inclusion: { in: AI_ACCESS_MODES }
   validates :ai_provider, inclusion: { in: AI_PROVIDERS }
+  validates :ai_api_key, presence: true, if: :personal_api_key_required?
   validates :ai_api_base, presence: true, if: :openai_compatible_personal_ai?
 
   before_validation :normalize_ai_settings
@@ -25,10 +28,10 @@ class Account < ApplicationRecord
   end
 
   def ai_access_mode_label
-    return "Use my ChatGPT/OpenAI account" if chatgpt_account?
-    return "Use my own API key" if personal_ai?
+    return "Мій OpenAI API key" if chatgpt_account?
+    return "Інший AI-сервіс або Ollama" if personal_ai?
 
-    "Use app default AI"
+    "AI застосунку"
   end
 
   def openai_compatible?
@@ -60,7 +63,14 @@ class Account < ApplicationRecord
   private
 
   def normalize_ai_settings
+    self.ai_provider = "openai" if ai_access_mode.in?(%w[app_default chatgpt_account])
+    self.ai_model = ai_model_custom if ai_model == FamilyBrain::AiModelCatalog::CUSTOM_MODEL_VALUE
+    self.ai_api_base = nil if personal_ai? && ai_provider == "openai"
     self.ai_api_base = ai_api_base.presence&.strip
     self.ai_model = ai_model.presence&.strip
+  end
+
+  def personal_api_key_required?
+    personal_ai? && !ollama?
   end
 end

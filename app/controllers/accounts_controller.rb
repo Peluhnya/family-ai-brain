@@ -74,7 +74,7 @@ class AccountsController < ApplicationController
   end
 
   def account_params
-    permitted = params.expect(account: %i[name description email active ai_access_mode ai_provider ai_api_key ai_api_base ai_model])
+    permitted = params.expect(account: %i[name description email active ai_access_mode ai_provider ai_api_key ai_api_base ai_model ai_model_custom])
 
     if action_name == "update" && permitted[:ai_api_key].blank?
       permitted.delete(:ai_api_key)

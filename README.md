@@ -1,24 +1,31 @@
-# README
+# Family AI Brain
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## AI configuration
 
-Things you may want to cover:
+The `AI застосунку — без власного ключа` account mode uses the application owner's OpenAI credentials. Configure them in one of these ways:
 
-* Ruby version
+```yaml
+# bin/rails credentials:edit
+openai:
+  api_key: sk-...
+  chat_model: gpt-4o-mini
+```
 
-* System dependencies
+Environment variables override Rails credentials:
 
-* Configuration
+```bash
+OPENAI_API_KEY=sk-... AI_CHAT_MODEL=gpt-4o-mini bin/dev
+```
 
-* Database creation
+For Kamal deployments, export `OPENAI_API_KEY` before running `bin/kamal deploy`. `config/deploy.yml` passes it to the application as a secret.
 
-* Database initialization
+Never commit a real API key to the repository. Account-specific keys entered through the UI are stored using Active Record Encryption.
 
-* How to run the test suite
+## Development
 
-* Services (job queues, cache servers, search engines, etc.)
+```bash
+bin/setup
+bin/dev
+```
 
-* Deployment instructions
-
-* ...
+Run the test suite with `bin/rails test`.
