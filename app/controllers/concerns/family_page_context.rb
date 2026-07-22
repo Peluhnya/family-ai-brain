@@ -63,6 +63,11 @@ module FamilyPageContext
       else
         []
       end
+      @recent_ai_effects = if (Rails.env.development? || Rails.env.test?) && ai_effect_tracking_available?
+        @family.ai_effects.includes(:source_ai_interaction).recent_first.limit(10)
+      else
+        []
+      end
     when "documents"
       @documents = @family.documents.recent_first.limit(20)
       @document_form = form_overrides.fetch(:document_form, selected_record(@family.documents, :edit_document_id) || @family.documents.new)
@@ -82,7 +87,7 @@ module FamilyPageContext
           @family.calendar_connections.new(provider: "google_calendar", active: true)
       )
     when "events"
-      @events = @family.events.upcoming_first.limit(20)
+      @events = @family.events.upcoming_or_ongoing.limit(20)
       @event_form = form_overrides.fetch(
         :event_form,
         selected_record(@family.events, :edit_event_id) ||
@@ -127,7 +132,7 @@ module FamilyPageContext
 
   def available_users_for(account)
     linked_ids = account.families.joins(family_members: :member_users).distinct.pluck("member_users.user_id")
-    User.where(id: linked_ids + [current_user.id]).or(User.where(email: current_user.email)).order(:email)
+    User.where(id: linked_ids + [ current_user.id ]).or(User.where(email: current_user.email)).order(:email)
   end
 
   def family_tab_redirect_path(family, tab = nil, extra_params = {})
@@ -180,7 +185,7 @@ module FamilyPageContext
       scope.where(source_type: "AiInteraction")
     when "duplicates"
       duplicate_digests = @family.automation_rule_executions
-        .where.not(context_digest: [nil, ""])
+        .where.not(context_digest: [ nil, "" ])
         .group(:automation_rule_id, :context_digest)
         .having("COUNT(*) > 1")
         .pluck(:context_digest)
@@ -195,6 +200,12 @@ module FamilyPageContext
 
   def automation_execution_tracking_available?
     AutomationRuleExecution.table_exists?
+  rescue ActiveRecord::NoDatabaseError, ActiveRecord::StatementInvalid
+    false
+  end
+
+  def ai_effect_tracking_available?
+    AiEffect.table_exists?
   rescue ActiveRecord::NoDatabaseError, ActiveRecord::StatementInvalid
     false
   end

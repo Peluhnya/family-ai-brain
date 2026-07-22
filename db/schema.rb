@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_30_210539) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -29,6 +29,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_210539) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_accounts_on_user_id"
+  end
+
+  create_table "ai_effects", force: :cascade do |t|
+    t.string "action_fingerprint", null: false
+    t.string "action_type", null: false
+    t.datetime "created_at", null: false
+    t.text "details"
+    t.bigint "entity_id"
+    t.string "entity_type"
+    t.text "error_message"
+    t.bigint "family_id", null: false
+    t.bigint "source_ai_interaction_id", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.index ["entity_type", "entity_id"], name: "index_ai_effects_on_entity_type_and_entity_id"
+    t.index ["family_id", "created_at"], name: "index_ai_effects_on_family_id_and_created_at"
+    t.index ["family_id"], name: "index_ai_effects_on_family_id"
+    t.index ["source_ai_interaction_id", "action_fingerprint"], name: "index_ai_effects_on_source_and_fingerprint", unique: true
+    t.index ["source_ai_interaction_id"], name: "index_ai_effects_on_source_ai_interaction_id"
   end
 
   create_table "ai_interactions", force: :cascade do |t|
@@ -121,6 +140,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_210539) do
   end
 
   create_table "events", force: :cascade do |t|
+    t.boolean "all_day", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "end_time"
     t.string "external_id"
@@ -252,6 +272,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_210539) do
   end
 
   add_foreign_key "accounts", "users"
+  add_foreign_key "ai_effects", "ai_interactions", column: "source_ai_interaction_id"
+  add_foreign_key "ai_effects", "families"
   add_foreign_key "ai_interactions", "families"
   add_foreign_key "ai_interactions", "users"
   add_foreign_key "automation_rule_executions", "automation_rules"

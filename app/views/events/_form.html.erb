@@ -23,9 +23,16 @@
       <%= form.datetime_local_field :start_time, class: "form-input" %>
     </div>
     <div>
-      <%= form.label :end_time, "Кінець", class: "form-label" %>
+      <%= form.label :end_time, "Кінець (для all-day — наступний день)", class: "form-label" %>
       <%= form.datetime_local_field :end_time, class: "form-input" %>
     </div>
+  </div>
+
+  <div>
+    <label class="flex items-center gap-3 text-sm font-medium text-[var(--ink)]">
+      <%= form.check_box :all_day, class: "size-4 rounded border-[var(--line)]" %>
+      Подія на весь день
+    </label>
   </div>
 
   <div class="form-grid">

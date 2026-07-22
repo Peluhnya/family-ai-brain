@@ -46,7 +46,7 @@ module FamilyBrain
       return "none" if @family.family_members.empty?
 
       @family.family_members.includes(:users).order(:name).map do |member|
-        linked_users = member.users.map(&:email).presence || ["no linked user"]
+        linked_users = member.users.map(&:email).presence || [ "no linked user" ]
         details = [
           member.name,
           member.role.presence || "member"
@@ -163,7 +163,7 @@ module FamilyBrain
       relevant_life_logs = retrieval_service.relevant_life_logs
       relevant_knowledge = retrieval_service.relevant_knowledge
       relevant_documents = retrieval_service.relevant_documents
-      upcoming_events = @family.events.upcoming_first.limit(EVENT_LIMIT).to_a
+      upcoming_events = @family.events.upcoming_or_ongoing.limit(EVENT_LIMIT).to_a
       active_reminders = @family.reminders.upcoming_first.limit(REMINDER_LIMIT).to_a
       active_rules = @family.automation_rules.active_first.limit(AUTOMATION_LIMIT).to_a
       open_tasks = @family.tasks.open_first.limit(TASK_LIMIT).to_a

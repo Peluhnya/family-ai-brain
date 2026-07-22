@@ -237,25 +237,33 @@ AI settings зберігаються encrypted.
 Коли користувач надсилає повідомлення:
 
 1. створюється `user ai_interaction`
-2. `ChatService` будує prompt
-3. `PromptBuilder` додає контекст
-4. `RubyLLM` генерує reply
-5. reply зберігається як `assistant ai_interaction`
-6. після цього запускається post-processing
+2. асинхронний `GenerateAiAssistantReplyJob` запускає `FamilyBrain::Orchestrator`
+3. `Planner` аналізує поточну репліку разом із коротким контекстом діалогу
+4. `ActionPolicy` додає обов’язкові companion actions, наприклад reminder до deadline task
+5. `ToolExecutor` створює або оновлює `tasks`, `events`, `reminders`
+6. кожен результат записується в `ai_effects`
+7. лише після фактичного виконання `ResponseFinalizer` генерує підтверджену відповідь
+8. статус і відповідь стрімляться через Turbo
+9. окремий `MemoryProcessingJob` запускає episodic/semantic memory processing
 
-Post-processing зараз включає:
+Operational planning зараз включає:
 
+- `Planner`
+- `ActionPolicy`
+- `ToolExecutor`
+- `ResponseFinalizer`
+
+Memory post-processing включає:
+
+- `LifeLogSyncService`
 - `KnowledgeSyncService`
-- `TaskSyncService`
-- `EventSyncService`
-- `ReminderSyncService`
 
-Тобто з діалогу система вже може автоматично:
+Контракт пам’яті:
 
-- оновлювати `family_knowledge`
-- створювати `tasks`
-- створювати `events`
-- створювати `reminders`
+- майбутні відпустки, табори, подорожі та зустрічі — `events`
+- завершені важливі переживання і моменти — `life_logs`
+- сталі вподобання, правила та довготривалі факти — `family_knowledge`
+- одна календарна подія не дублюється автоматично в semantic knowledge
 
 ## Prompt building
 
@@ -515,20 +523,7 @@ Long-term memory optimization
 
 ## Що ще лишається великим наступним кроком
 
-### 1. `FamilyBrain::Orchestrator`
-
-Потрібен єдиний orchestration entry point для chat turn.
-
-### 2. `MemoryProcessor`
-
-Потрібен окремий сервіс, який:
-
-- аналізує діалоги
-- створює `life_logs`
-- оновлює `family_knowledge`
-- стискає старі дані
-
-### 3. `Long-term memory optimization`
+### 1. `Long-term memory optimization`
 
 Потрібно реалізувати:
 
@@ -537,7 +532,7 @@ Long-term memory optimization
 - `time decay`
 - compression / pruning policies
 
-### 4. Real delivery integrations
+### 2. Real delivery integrations
 
 Для `reminders` ще немає реальних:
 

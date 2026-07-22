@@ -35,7 +35,7 @@ class EventsController < ApplicationController
   end
 
   def event_params
-    params.expect(event: %i[title start_time end_time location external_id source])
+    params.expect(event: %i[title start_time end_time all_day location external_id source])
   end
 
   def set_event

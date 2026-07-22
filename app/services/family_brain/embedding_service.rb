@@ -12,7 +12,8 @@ module FamilyBrain
       return vector.first if vector.is_a?(Array) && vector.first.is_a?(Array)
 
       nil
-    rescue StandardError
+    rescue StandardError => error
+      Rails.logger.warn("family_brain_embedding_failed error=#{error.class}: #{error.message}")
       nil
     end
   end

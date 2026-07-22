@@ -24,7 +24,7 @@ module FamiliesHelper
     case tab_key
     when "chat" then family.ai_interactions.count
     when "tasks" then family.tasks.active.count
-    when "events" then family.events.where("start_time >= ?", Time.current.beginning_of_day).count
+    when "events" then family.events.upcoming_or_ongoing.count
     when "reminders" then family.reminders.active.count
     when "documents" then family.documents.count
     when "knowledge" then family.family_knowledge.count
@@ -42,9 +42,9 @@ module FamiliesHelper
 
   def automation_execution_filter_options
     [
-      ["Усі", "all"],
-      ["Chat-triggered", "chat"],
-      ["Duplicates", "duplicates"]
+      [ "Усі", "all" ],
+      [ "Chat-triggered", "chat" ],
+      [ "Duplicates", "duplicates" ]
     ]
   end
 

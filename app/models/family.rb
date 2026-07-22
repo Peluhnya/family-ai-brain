@@ -2,6 +2,7 @@ class Family < ApplicationRecord
   belongs_to :account
   has_many :family_members, dependent: :destroy
   has_many :ai_interactions, dependent: :destroy
+  has_many :ai_effects, dependent: :destroy
   has_many :life_logs, dependent: :destroy
   has_many :family_knowledge, dependent: :destroy
   has_many :automation_rules, dependent: :destroy

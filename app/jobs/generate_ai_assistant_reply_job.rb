@@ -10,13 +10,17 @@ class GenerateAiAssistantReplyJob < ApplicationJob
     assistant_message = family.ai_interactions.find(assistant_message_id)
 
     streamed_content = +""
-    result = FamilyBrain::ChatService.new(family: family, user: user, message: user_message).call do |chunk|
+    result = FamilyBrain::Orchestrator.new(family: family, user: user, user_message: user_message).call(
+      on_status: ->(status) { broadcast_status(family, assistant_message, status) }
+    ) do |chunk|
       next if chunk.content.blank?
 
       streamed_content << chunk.content
       assistant_message.content = streamed_content
       broadcast_interaction_update(family, assistant_message)
     end
+
+    usage_metadata = (result[:usage_metadata] || {}).deep_merge(orchestrator: result[:orchestrator] || {})
 
     assistant_message.update!(
       content: result[:content].presence || streamed_content.presence || "Вибач, я не зміг сформувати відповідь.",
@@ -30,7 +34,7 @@ class GenerateAiAssistantReplyJob < ApplicationJob
       short_term_message_count: result.dig(:usage_metadata, :estimates, :short_term_message_count),
       user_message_tokens: result.dig(:usage_metadata, :estimates, :user_message_tokens),
       prompt_version: result[:prompt_version],
-      llm_metadata: result[:usage_metadata] || {}
+      llm_metadata: usage_metadata
     )
 
     Rails.logger.info(
@@ -43,7 +47,7 @@ class GenerateAiAssistantReplyJob < ApplicationJob
     )
 
     broadcast_interaction_update(family, assistant_message)
-    ProcessAiInteractionEffectsJob.perform_later(family.id, user_message.id, assistant_message.id)
+    MemoryProcessingJob.perform_later(family.id, user_message.id, assistant_message.id)
   rescue StandardError => e
     assistant_message&.update!(
       content: "LLM request failed: #{e.message}",
@@ -54,6 +58,11 @@ class GenerateAiAssistantReplyJob < ApplicationJob
   end
 
   private
+
+  def broadcast_status(family, assistant_message, status)
+    assistant_message.content = status
+    broadcast_interaction_update(family, assistant_message)
+  end
 
   def broadcast_interaction_update(family, interaction)
     Turbo::StreamsChannel.broadcast_replace_to(

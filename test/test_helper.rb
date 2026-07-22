@@ -17,3 +17,39 @@ end
 class ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 end
+
+class FakeStructuredLlmClient
+  Response = Data.define(:content)
+
+  attr_reader :prompts, :schemas
+
+  def initialize(payload)
+    @payload = payload
+    @prompts = []
+    @schemas = []
+  end
+
+  def available?
+    true
+  end
+
+  def with_chat(schema: nil)
+    @schemas << schema
+    yield Chat.new(self)
+  end
+
+  def record_prompt(prompt)
+    @prompts << prompt
+    Response.new(content: @payload)
+  end
+
+  class Chat
+    def initialize(client)
+      @client = client
+    end
+
+    def ask(prompt)
+      @client.record_prompt(prompt)
+    end
+  end
+end

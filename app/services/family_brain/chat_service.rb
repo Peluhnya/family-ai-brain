@@ -1,9 +1,10 @@
 module FamilyBrain
   class ChatService
-    def initialize(family:, user:, message:)
+    def initialize(family:, user:, message:, turn_execution_context: nil)
       @family = family
       @user = user
       @message = message
+      @turn_execution_context = turn_execution_context
       @llm_client = FamilyBrain::LlmClient.new(account: @family.account)
       @account_ai_config = @llm_client.config
     end
@@ -17,6 +18,7 @@ module FamilyBrain
       short_term_messages = prompt_builder.short_term_messages.to_a
       response = @llm_client.with_chat do |chat|
         chat.with_instructions(system_prompt)
+        chat.with_instructions(@turn_execution_context) if @turn_execution_context.present?
 
         short_term_messages.each do |interaction|
           chat.add_message(role: interaction.role.to_sym, content: interaction.content)
@@ -44,6 +46,7 @@ module FamilyBrain
         )
       }
     rescue StandardError => e
+      Rails.logger.error("family_brain_chat_failed family_id=#{@family.id} interaction_id=#{@message.id} error=#{e.class}: #{e.message}")
       fallback_response("LLM request failed: #{e.message}")
     end
 

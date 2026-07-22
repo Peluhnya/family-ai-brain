@@ -30,12 +30,15 @@ module FamilyBrain
 
       return false if title_tokens.empty? || evidence_tokens.empty?
 
-      missing_tokens = title_tokens - evidence_tokens
+      missing_tokens = title_tokens.reject do |title_token|
+        evidence_tokens.any? { |evidence_token| token_equivalent?(title_token, evidence_token) }
+      end
       missing_tokens.empty? || (title_tokens.size >= 3 && missing_tokens.size == 1)
     end
 
     def temporal_reference?(text)
-      text.to_s.match?(%r{(\b\d{1,2}:\d{2}\b|\b\d{1,2}[.\-/]\d{1,2}(?:[.\-/]\d{2,4})?\b|\bо\s*\d{1,2}\b|сьогодні|завтра|післязавтра|today|tomorrow|понеділ|вівтор|серед|четвер|п'ятниц|пятниц|friday|saturday|sunday|monday|tuesday|wednesday|thursday|субот|неділ)}i)
+      normalized = text.to_s.downcase.tr("’ʼ`'", "").gsub(/пятгниц/u, "пятниц")
+      normalized.match?(%r{(\b\d{1,2}:\d{2}\b|\b\d{1,2}[.\-/]\d{1,2}(?:[.\-/]\d{2,4})?\b|\b\d{1,2}\s+(?:січня|лютого|березня|квітня|травня|червня|липня|серпня|вересня|жовтня|листопада|грудня)\b|\bо\s*\d{1,2}\b|сьогодні|завтра|післязавтра|today|tomorrow|понеділ|вівтор|серед|четвер|пятниц|friday|saturday|sunday|monday|tuesday|wednesday|thursday|субот|неділ)}i)
     end
 
     def reminder_intent?(text)
@@ -56,6 +59,13 @@ module FamilyBrain
 
     def translation_artifact?(text)
       text.to_s.match?(/\([A-Za-z][^)]+\)/)
+    end
+
+    def token_equivalent?(left, right)
+      return true if left == right
+
+      common_length = left.chars.zip(right.chars).take_while { |left_char, right_char| left_char == right_char }.length
+      common_length >= 3 && common_length >= [ left.length, right.length ].min - 2
     end
   end
 end

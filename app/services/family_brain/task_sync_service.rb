@@ -20,7 +20,7 @@ module FamilyBrain
           }
         }
       },
-      required: ["tasks"],
+      required: [ "tasks" ],
       additionalProperties: false
     }.freeze
 
@@ -40,7 +40,8 @@ module FamilyBrain
       payload = response.content.is_a?(Hash) ? response.content : {}
 
       Array(payload["tasks"]).filter_map { |task_payload| create_task(task_payload) }
-    rescue StandardError
+    rescue StandardError => error
+      Rails.logger.error("family_brain_legacy_task_sync_failed family_id=#{@family.id} error=#{error.class}: #{error.message}")
       []
     end
 
@@ -89,7 +90,8 @@ module FamilyBrain
         status: "pending",
         priority: normalize_priority(task_payload["priority"])
       )
-    rescue ActiveRecord::RecordInvalid
+    rescue ActiveRecord::RecordInvalid => error
+      Rails.logger.warn("family_brain_legacy_task_rejected family_id=#{@family.id} error=#{error.record.errors.full_messages.join(', ')}")
       nil
     end
 
@@ -114,6 +116,5 @@ module FamilyBrain
 
       days.days.from_now
     end
-
   end
 end

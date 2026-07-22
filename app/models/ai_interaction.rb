@@ -3,6 +3,7 @@ class AiInteraction < ApplicationRecord
 
   belongs_to :family
   belongs_to :user, optional: true
+  has_many :ai_effects, foreign_key: :source_ai_interaction_id, dependent: :destroy
 
   encrypts :content
 

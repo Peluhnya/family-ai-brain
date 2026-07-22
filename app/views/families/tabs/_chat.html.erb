@@ -40,6 +40,26 @@
             Debug-дані з’являться після першої AI-відповіді.
           </div>
         <% end %>
+
+        <% if @recent_ai_effects.any? %>
+          <div class="mt-5 space-y-3 text-sm leading-6 text-[var(--ink-soft)]">
+            <p class="label-kicker">Turn effects</p>
+            <% @recent_ai_effects.each do |effect| %>
+              <div class="entity-card">
+                <p><strong><%= effect.action_type.humanize %></strong> · <%= effect.status %></p>
+                <p>
+                  message <%= effect.source_ai_interaction_id %>
+                  <% if effect.entity_type.present? && effect.entity_id.present? %>
+                    · <%= effect.entity_type %> <%= effect.entity_id %>
+                  <% end %>
+                </p>
+                <% if effect.error_message.present? %>
+                  <p class="text-red-700"><%= effect.error_message %></p>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
       </div>
     <% end %>
 
@@ -53,7 +73,7 @@
         <% end %>
         <%= link_to tab_family_path(@family, tab: "events"), class: "entity-card flex items-center justify-between no-underline", data: { turbo_frame: "family_tab_content", turbo_action: "advance" } do %>
           <span class="flex items-center gap-3"><%= ui_icon("calendar") %> Найближчі події</span>
-          <span class="family-tab-count"><%= @family.events.where("start_time >= ?", Time.current.beginning_of_day).count %></span>
+          <span class="family-tab-count"><%= @family.events.upcoming_or_ongoing.count %></span>
         <% end %>
         <%= link_to tab_family_path(@family, tab: "reminders"), class: "entity-card flex items-center justify-between no-underline", data: { turbo_frame: "family_tab_content", turbo_action: "advance" } do %>
           <span class="flex items-center gap-3"><%= ui_icon("bell") %> Нагадування</span>

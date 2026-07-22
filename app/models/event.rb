@@ -1,7 +1,7 @@
 class Event < ApplicationRecord
   include FamilyTabCountsBroadcastable
   include FamilyWorkspaceRefreshBroadcastable
-  self.family_tab_count_update_fields = %i[start_time]
+  self.family_tab_count_update_fields = %i[start_time end_time]
 
   SOURCES = %w[manual ai_chat automation_rule google_calendar apple_calendar outlook_calendar imported].freeze
 
@@ -18,7 +18,14 @@ class Event < ApplicationRecord
   before_validation :normalize_sync_fields
 
   scope :upcoming_first, -> { order(start_time: :asc, created_at: :desc) }
+  scope :upcoming_or_ongoing, -> { where("COALESCE(end_time, start_time) >= ?", Time.current.beginning_of_day).upcoming_first }
   scope :recent_first, -> { order(start_time: :desc, created_at: :desc) }
+
+  def display_end_time
+    return end_time unless all_day? && end_time.present?
+
+    end_time - 1.day
+  end
 
   def self.sync_fingerprint_for(source_key:, external_id:)
     source_value = source_key.to_s.strip

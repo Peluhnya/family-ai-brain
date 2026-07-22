@@ -18,8 +18,11 @@
             <h3 class="mt-2 font-['Iowan_Old_Style','Palatino_Linotype',serif] text-2xl font-semibold text-[var(--ink)]"><%= event.title %></h3>
             <p class="mt-3 muted-copy"><%= event.location.presence || "Без локації" %></p>
             <div class="meta-row mt-4">
-              <span class="meta-pill"><%= l(event.start_time, format: :short) %></span>
-              <span class="meta-pill"><%= event.end_time.present? ? l(event.end_time, format: :short) : "open end" %></span>
+              <span class="meta-pill"><%= event.all_day? ? l(event.start_time.to_date, format: :long) : l(event.start_time, format: :short) %></span>
+              <span class="meta-pill"><%= event.end_time.present? ? (event.all_day? ? l(event.display_end_time.to_date, format: :long) : l(event.end_time, format: :short)) : "open end" %></span>
+              <% if event.all_day? %>
+                <span class="meta-pill">all day</span>
+              <% end %>
               <% if event.external_id.present? %>
                 <span class="meta-pill">synced</span>
               <% end %>

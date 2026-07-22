@@ -18,7 +18,7 @@ module FamilyBrain
           }
         }
       },
-      required: ["reminders"],
+      required: [ "reminders" ],
       additionalProperties: false
     }.freeze
 
@@ -39,7 +39,8 @@ module FamilyBrain
       payload = response.content.is_a?(Hash) ? response.content : {}
 
       Array(payload["reminders"]).filter_map { |reminder_payload| create_reminder(reminder_payload) }
-    rescue StandardError
+    rescue StandardError => error
+      Rails.logger.error("family_brain_legacy_reminder_sync_failed family_id=#{@family.id} error=#{error.class}: #{error.message}")
       []
     end
 
@@ -77,7 +78,8 @@ module FamilyBrain
         channel: normalize_channel(reminder_payload["channel"]),
         status: "pending"
       )
-    rescue ActiveRecord::RecordInvalid
+    rescue ActiveRecord::RecordInvalid => error
+      Rails.logger.warn("family_brain_legacy_reminder_rejected family_id=#{@family.id} error=#{error.record.errors.full_messages.join(', ')}")
       nil
     end
 
@@ -95,6 +97,5 @@ module FamilyBrain
       days = 0 if days.negative?
       (days.days.from_now).change(min: 0)
     end
-
   end
 end

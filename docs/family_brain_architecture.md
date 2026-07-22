@@ -50,6 +50,10 @@ This target pipeline separates:
 
 ## Core Service Objects
 
+The chat action path below is now implemented. A turn is still executed in an
+Active Job and streamed with Turbo, but planning and tool execution finish
+before the assistant is allowed to confirm a database change.
+
 ### 1. `FamilyBrain::Orchestrator`
 
 Single entry point for a chat turn.
@@ -297,22 +301,32 @@ app/services/family_brain/
 
 ## Existing Services That Already Fit
 
+- `FamilyBrain::Orchestrator`
+- `FamilyBrain::Planner`
+- `FamilyBrain::ActionPolicy`
+- `FamilyBrain::ToolExecutor`
+- `FamilyBrain::ResponseFinalizer`
 - `FamilyBrain::ChatService`
 - `FamilyBrain::PromptBuilder`
 - `FamilyBrain::RetrievalService`
+- `FamilyBrain::MemoryProcessor`
+- `FamilyBrain::LifeLogSyncService`
 - `FamilyBrain::KnowledgeSyncService`
-- `FamilyBrain::TaskSyncService`
-- `FamilyBrain::EventSyncService`
-- `FamilyBrain::ReminderSyncService`
 
-The next work is not inventing the whole system from zero. The next work is consolidating and moving orchestration out of controllers.
+The legacy task/event/reminder sync services remain for compatibility, but the
+chat path now uses the unified planner and tool executor.
 
 ## Recommended Next Implementation Steps
 
+Completed:
+
 1. Introduce `FamilyBrain::Orchestrator`
-2. Move `AiInteractionsController#create` to the orchestrator
+2. Run planner and tool execution in the asynchronous chat job
 3. Introduce `MemoryProcessingJob`
 4. Add `FamilyBrain::MemoryProcessor`
-5. Move post-turn extraction into `MemoryProcessor`
-6. Add `LongTermMemoryOptimizationJob`
-7. Add scoring, summaries, and decay as independent services
+5. Separate operational actions from post-turn memory extraction
+
+Still pending:
+
+1. Add `LongTermMemoryOptimizationJob`
+2. Add scoring, summaries, and decay as independent services

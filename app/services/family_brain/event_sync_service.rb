@@ -20,7 +20,7 @@ module FamilyBrain
           }
         }
       },
-      required: ["events"],
+      required: [ "events" ],
       additionalProperties: false
     }.freeze
 
@@ -41,7 +41,8 @@ module FamilyBrain
       payload = response.content.is_a?(Hash) ? response.content : {}
 
       Array(payload["events"]).filter_map { |event_payload| create_event(event_payload) }
-    rescue StandardError
+    rescue StandardError => error
+      Rails.logger.error("family_brain_legacy_event_sync_failed family_id=#{@family.id} error=#{error.class}: #{error.message}")
       []
     end
 
@@ -55,7 +56,7 @@ module FamilyBrain
         For each event, include an evidence field with the exact short quote from the user's text that proves both the event and its timing.
         Return up to 3 events.
         Use Ukrainian for title and location.
-        source should usually be "chat:auto".
+        source should usually be "ai_chat".
         start_in_days must be 0 if the event is today or timing is immediate, 1 for tomorrow, etc.
         duration_hours must be 1 if no duration is known.
 
@@ -79,11 +80,12 @@ module FamilyBrain
       @family.events.create!(
         title: title,
         location: event_payload["location"].to_s.strip.presence,
-        source: event_payload["source"].to_s.strip.presence || "chat:auto",
+        source: event_payload["source"].to_s.strip.presence || "ai_chat",
         start_time: start_time,
         end_time: start_time + normalize_duration(event_payload["duration_hours"]).hours
       )
-    rescue ActiveRecord::RecordInvalid
+    rescue ActiveRecord::RecordInvalid => error
+      Rails.logger.warn("family_brain_legacy_event_rejected family_id=#{@family.id} error=#{error.record.errors.full_messages.join(', ')}")
       nil
     end
 
@@ -104,6 +106,5 @@ module FamilyBrain
 
       hours.clamp(1, 24)
     end
-
   end
 end
