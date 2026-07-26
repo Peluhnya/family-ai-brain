@@ -23,6 +23,7 @@ Rails.application.routes.draw do
     resources :events, only: %i[create update destroy]
     resources :calendar_connections, only: %i[create update destroy]
     post "calendar_connections/connect_google", to: "calendar_connections#connect_google", as: :connect_google_calendar
+    post "calendar_connections/connect_outlook", to: "calendar_connections#connect_outlook", as: :connect_outlook_calendar
     resources :documents, only: %i[create update destroy]
     resources :reminders, only: %i[create update destroy]
     resources :automation_rules, only: %i[create update destroy]
@@ -33,6 +34,10 @@ Rails.application.routes.draw do
     get :select_google_calendar, on: :member
     post :update_google_calendar, on: :member
     post :authorize_google, on: :member
+    get :outlook_callback, on: :collection
+    get :select_outlook_calendar, on: :member
+    post :update_outlook_calendar, on: :member
+    post :authorize_outlook, on: :member
     post :sync, on: :member
   end
   resources :automation_rules, only: [] do

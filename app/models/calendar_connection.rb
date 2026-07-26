@@ -23,9 +23,13 @@ class CalendarConnection < ApplicationRecord
     provider == "google_calendar"
   end
 
+  def outlook_calendar?
+    provider == "outlook_calendar"
+  end
+
   def effective_remote_calendar_id
     return remote_calendar_id if remote_calendar_id.present?
-    return nil if google_calendar?
+    return nil if google_calendar? || outlook_calendar?
 
     nil
   end
@@ -40,7 +44,7 @@ class CalendarConnection < ApplicationRecord
     self.remote_calendar_id = remote_calendar_id.to_s.strip.presence
     self.display_name = display_name.to_s.strip.presence
     self.remote_calendar_key = digest(remote_calendar_id)
-    self.connection_fingerprint = digest([provider, remote_calendar_id].join(":"))
+    self.connection_fingerprint = digest([ provider, remote_calendar_id ].join(":"))
   end
 
   def digest(value)
