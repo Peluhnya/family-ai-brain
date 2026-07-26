@@ -46,6 +46,24 @@ GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=... bin/dev
 
 In a family's **Calendar connections** tab, click **Підключити Google Calendar**, authorize the Google account, and select the calendar to attach to that family. The app requests read-only calendar access and stores OAuth tokens encrypted with Active Record Encryption.
 
+## Outlook Calendar OAuth
+
+Register a Web application in Microsoft Entra ID, add the delegated Microsoft Graph permission `Calendars.Read`, and configure this redirect URI:
+
+```text
+https://YOUR_APP_HOST/calendar_connections/outlook_callback
+```
+
+Provide credentials through `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET`, or Rails credentials:
+
+```yaml
+microsoft:
+  client_id: your-application-client-id
+  client_secret: your-client-secret
+```
+
+In **Calendar connections**, click **Підключити Outlook Calendar**, authorize the Microsoft account, and select one or more calendars. The app requests read-only calendar and offline access, refreshes tokens when needed, and stores tokens encrypted with Active Record Encryption.
+
 ## Development
 
 ```bash

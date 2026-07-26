@@ -2,8 +2,8 @@ class CalendarConnectionsController < ApplicationController
   include FamilyPageContext
 
   before_action :authenticate_user!
-  before_action :set_family, only: %i[create update destroy connect_google]
-  before_action :set_connection, only: %i[sync authorize_google select_google_calendar update_google_calendar]
+  before_action :set_family, only: %i[create update destroy connect_google connect_outlook]
+  before_action :set_connection, only: %i[sync authorize_google select_google_calendar update_google_calendar authorize_outlook select_outlook_calendar update_outlook_calendar]
   before_action :set_nested_connection, only: %i[update destroy]
 
   def create
@@ -22,6 +22,14 @@ class CalendarConnectionsController < ApplicationController
   rescue KeyError => e
     connection&.destroy
     redirect_to family_tab_redirect_path(@family, "connections"), alert: "Google OAuth is not configured: #{e.message}"
+  end
+
+  def connect_outlook
+    connection = @family.calendar_connections.create!(provider: "outlook_calendar", active: true)
+    start_outlook_authorization(connection)
+  rescue KeyError => e
+    connection&.destroy
+    redirect_to family_tab_redirect_path(@family, "connections"), alert: "Outlook OAuth is not configured: #{e.message}"
   end
 
   def update
@@ -63,6 +71,72 @@ class CalendarConnectionsController < ApplicationController
   rescue StandardError => e
     fallback_family = connection&.family || Family.joins(:account).where(accounts: { user_id: current_user.id }).first
     redirect_to family_tab_redirect_path(fallback_family, "connections"), alert: "Google authorization failed: #{e.message}"
+  end
+
+  def authorize_outlook
+    unless @calendar_connection.outlook_calendar?
+      return redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Microsoft OAuth is available only for Outlook Calendar connections."
+    end
+
+    start_outlook_authorization(@calendar_connection)
+  rescue KeyError => e
+    redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Outlook OAuth is not configured: #{e.message}"
+  end
+
+  def outlook_callback
+    state = params[:state].to_s
+    expected_state = session.delete(:outlook_calendar_oauth_state).to_s
+    connection_id = session.delete(:outlook_calendar_connection_id)
+    return redirect_to root_path, alert: "Outlook authorization state mismatch." if state.blank? || expected_state.blank? || state != expected_state
+    return redirect_to root_path, alert: "Missing Outlook calendar connection context." if connection_id.blank?
+
+    connection = CalendarConnection.joins(family: :account).where(accounts: { user_id: current_user.id }).find(connection_id)
+    outlook_oauth_service(connection).exchange_code!(code: params.expect(:code))
+    redirect_to select_outlook_calendar_calendar_connection_path(connection), notice: "Outlook Calendar підключено. Оберіть календарі для синхронізації."
+  rescue KeyError => e
+    redirect_to root_path, alert: "Outlook OAuth is not configured: #{e.message}"
+  rescue StandardError => e
+    fallback_family = connection&.family || Family.joins(:account).where(accounts: { user_id: current_user.id }).first
+    redirect_to family_tab_redirect_path(fallback_family, "connections"), alert: "Outlook authorization failed: #{e.message}"
+  end
+
+  def select_outlook_calendar
+    unless @calendar_connection.outlook_calendar?
+      return redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Calendar selection is available only for Outlook Calendar connections."
+    end
+
+    @outlook_calendars = CalendarSync::OutlookCalendarListService.new(connection: @calendar_connection).call
+    @selected_outlook_calendar_ids = @calendar_connection.settings.fetch("outlook_calendar_ids", [])
+  rescue StandardError => e
+    redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Could not load Outlook calendars: #{e.message}"
+  end
+
+  def update_outlook_calendar
+    unless @calendar_connection.outlook_calendar?
+      return redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Calendar selection is available only for Outlook Calendar connections."
+    end
+
+    calendars = CalendarSync::OutlookCalendarListService.new(connection: @calendar_connection).call
+    requested_ids = Array(params[:outlook_calendar_ids]).compact_blank.uniq
+    available_ids = calendars.pluck(:id)
+    selected_calendars = calendars.select { |calendar| requested_ids.include?(calendar[:id]) }
+    return redirect_to select_outlook_calendar_calendar_connection_path(@calendar_connection), alert: "Оберіть щонайменше один календар." if requested_ids.empty?
+    unless requested_ids.all? { |calendar_id| available_ids.include?(calendar_id) }
+      return redirect_to select_outlook_calendar_calendar_connection_path(@calendar_connection), alert: "Один або декілька вибраних календарів недоступні."
+    end
+
+    @calendar_connection.update!(remote_calendar_id: requested_ids.sort.join(","), display_name: "Outlook Calendar (#{selected_calendars.size})",
+      sync_cursor: nil, settings: @calendar_connection.settings.merge("outlook_calendar_ids" => requested_ids,
+        "outlook_calendar_names" => selected_calendars.to_h { |calendar| [ calendar[:id], calendar[:summary] ] }))
+    remove_unselected_events!(provider: "outlook_calendar", calendar_ids: available_ids - requested_ids)
+    result = CalendarSync::ConnectionSyncService.new(connection: @calendar_connection).call
+    if result[:error].present?
+      redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Налаштування збережено, але синхронізація не вдалася: #{result[:error]}"
+    else
+      redirect_to family_tab_redirect_path(@calendar_connection.family, "calendar"), notice: "Вибрані календарі збережено. Синхронізовано подій: #{result[:imported]}."
+    end
+  rescue StandardError => e
+    redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Could not save selected Outlook calendar: #{e.message}"
   end
 
   def select_google_calendar
@@ -128,10 +202,14 @@ class CalendarConnectionsController < ApplicationController
   private
 
   def remove_unselected_google_events!(calendar_ids)
+    remove_unselected_events!(provider: "google_calendar", calendar_ids:)
+  end
+
+  def remove_unselected_events!(provider:, calendar_ids:)
     prefixes = calendar_ids.map { |calendar_id| "#{calendar_id}:" }
     return if prefixes.empty?
 
-    @calendar_connection.family.events.where(source_key: "google_calendar").find_each do |event|
+    @calendar_connection.family.events.where(source_key: provider).find_each do |event|
       event.destroy! if prefixes.any? { |prefix| event.external_id.to_s.start_with?(prefix) }
     end
   end
@@ -168,12 +246,25 @@ class CalendarConnectionsController < ApplicationController
     CalendarSync::GoogleOauthService.new(connection:, redirect_uri: google_callback_calendar_connections_url)
   end
 
+  def outlook_oauth_service(connection = @calendar_connection)
+    CalendarSync::OutlookOauthService.new(connection:, redirect_uri: outlook_callback_calendar_connections_url)
+  end
+
   def start_google_authorization(connection)
     state = SecureRandom.hex(24)
     authorization_url = google_oauth_service(connection).authorization_url(state:)
     session[:google_calendar_oauth_state] = state
     session[:google_calendar_connection_id] = connection.id
 
+    redirect_to authorization_url, allow_other_host: true
+  end
+
+
+  def start_outlook_authorization(connection)
+    state = SecureRandom.hex(24)
+    authorization_url = outlook_oauth_service(connection).authorization_url(state:)
+    session[:outlook_calendar_oauth_state] = state
+    session[:outlook_calendar_connection_id] = connection.id
     redirect_to authorization_url, allow_other_host: true
   end
 end
