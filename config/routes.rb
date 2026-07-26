@@ -22,6 +22,7 @@ Rails.application.routes.draw do
     resources :family_knowledge, only: %i[create update destroy]
     resources :events, only: %i[create update destroy]
     resources :calendar_connections, only: %i[create update destroy]
+    post "calendar_connections/connect_google", to: "calendar_connections#connect_google", as: :connect_google_calendar
     resources :documents, only: %i[create update destroy]
     resources :reminders, only: %i[create update destroy]
     resources :automation_rules, only: %i[create update destroy]
