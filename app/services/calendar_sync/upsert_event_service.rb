@@ -16,6 +16,7 @@ module CalendarSync
         title: @payload.fetch(:title),
         start_time: @payload.fetch(:start_time),
         end_time: @payload[:end_time],
+        all_day: @payload[:all_day] == true,
         location: @payload[:location],
         external_id: @payload[:external_id],
         source: @payload[:source],

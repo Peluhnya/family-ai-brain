@@ -10,7 +10,7 @@
 
     <div class="mt-6 rounded-2xl border border-[var(--line)] bg-white/60 p-5">
       <h3 class="text-lg font-semibold text-[var(--ink)]">Google Calendar</h3>
-      <p class="mt-2 muted-copy">Авторизуй Google-акаунт, а потім вибери календар, який потрібно приєднати до цієї сім’ї.</p>
+      <p class="mt-2 muted-copy">Авторизуй Google-акаунт і вибери, з яких календарів потрібно показувати події у спільному календарі сім’ї.</p>
       <%= button_to "Підключити Google Calendar", family_connect_google_calendar_path(@family), method: :post, class: "cta-primary mt-4 cursor-pointer" %>
     </div>
 
@@ -32,7 +32,7 @@
               <% if connection.google_calendar? %>
                 <%= button_to(connection.ready_for_remote_sync? ? "Reconnect Google" : "Authorize Google", authorize_google_calendar_connection_path(connection), method: :post, class: "cta-secondary cursor-pointer") %>
                 <% if connection.access_token.present? || connection.refresh_token.present? %>
-                  <%= link_to "Select calendar", select_google_calendar_calendar_connection_path(connection), class: "cta-secondary" %>
+                  <%= link_to "Вибрати календарі", select_google_calendar_calendar_connection_path(connection), class: "cta-secondary" %>
                 <% end %>
               <% end %>
               <%= button_to "Sync now", sync_calendar_connection_path(connection), method: :post, class: "cta-secondary cursor-pointer" %>

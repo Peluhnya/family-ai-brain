@@ -9,38 +9,39 @@ module CalendarSync
     def fetch_events
       raise "Google Calendar connection is missing credentials." unless @connection.ready_for_remote_sync?
 
+      selected_calendar_ids.flat_map { |calendar_id| fetch_calendar_events(calendar_id) }
+    end
+
+    private
+
+    def selected_calendar_ids
+      ids = Array(@connection.settings["google_calendar_ids"]).compact_blank.uniq
+      raise "Choose at least one Google calendar to sync." if ids.empty?
+
+      ids
+    end
+
+    def fetch_calendar_events(calendar_id)
       events = []
       page_token = nil
 
       loop do
-        response = get_events_page(page_token:)
-        events.concat(Array(response["items"]).map { |item| normalize_event(item) })
+        response = get_events_page(calendar_id:, page_token:)
+        events.concat(Array(response["items"]).map { |item| normalize_event(item, calendar_id:) })
         page_token = response["nextPageToken"]
-
-        if page_token.blank?
-          @connection.update!(sync_cursor: response["nextSyncToken"].presence || @connection.sync_cursor)
-          break
-        end
+        break if page_token.blank?
       end
 
       events
-    rescue CalendarSync::GoogleCalendarAdapter::FullSyncRequired
-      @connection.update!(sync_cursor: nil)
-      retry
     end
 
-    class FullSyncRequired < StandardError; end
-
-    private
-
-    def get_events_page(page_token:, refreshed: false)
-      uri = URI("#{API_BASE_URL}/calendars/#{CGI.escape(@connection.effective_remote_calendar_id)}/events")
+    def get_events_page(calendar_id:, page_token:, refreshed: false)
+      uri = URI("#{API_BASE_URL}/calendars/#{CGI.escape(calendar_id)}/events")
       params = {
         maxResults: 250,
         singleEvents: true,
         showDeleted: true
       }
-      params[:syncToken] = @connection.sync_cursor if @connection.sync_cursor.present?
       params[:pageToken] = page_token if page_token.present?
       uri.query = URI.encode_www_form(params)
 
@@ -53,9 +54,7 @@ module CalendarSync
         raise "Google Calendar access token refresh failed." if refreshed
 
         refresh_access_token!
-        get_events_page(page_token:, refreshed: true)
-      when 410
-        raise FullSyncRequired
+        get_events_page(calendar_id:, page_token:, refreshed: true)
       else
         raise(body.dig("error", "message") || "Google Calendar events request failed.")
       end
@@ -81,15 +80,18 @@ module CalendarSync
       @current_access_token = CalendarSync::GoogleOauthService.new(connection: @connection).refresh_access_token!
     end
 
-    def normalize_event(item)
+    def normalize_event(item, calendar_id:)
       start_time = extract_time(item["start"])
       end_time = extract_time(item["end"])
 
       {
-        external_id: item["id"],
+        # Google event ids are unique only inside a calendar. Prefixing the id
+        # prevents an event in a shared calendar from replacing another one.
+        external_id: "#{calendar_id}:#{item['id']}",
         title: item["summary"].presence || "Google Calendar event",
         start_time: start_time,
         end_time: end_time,
+        all_day: item.dig("start", "date").present?,
         location: item["location"],
         deleted: item["status"] == "cancelled"
       }
