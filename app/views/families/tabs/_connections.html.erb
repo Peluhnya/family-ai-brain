@@ -20,6 +20,17 @@
       <%= button_to "Підключити Outlook Calendar", family_connect_outlook_calendar_path(@family), method: :post, class: "cta-primary mt-4 cursor-pointer" %>
     </div>
 
+    <div class="mt-4 rounded-2xl border border-[var(--line)] bg-white/60 p-5">
+      <h3 class="text-lg font-semibold text-[var(--ink)]">Apple Calendar</h3>
+      <p class="mt-2 muted-copy">Підключи iCloud через Apple ID та окремий пароль програми, а потім вибери календарі для сімейного простору.</p>
+      <%= form_with url: family_connect_apple_calendar_path(@family), method: :post, class: "mt-4 grid gap-3 sm:grid-cols-2" do |form| %>
+        <%= form.email_field :apple_id, required: true, autocomplete: "username", class: "form-input", placeholder: "Apple ID" %>
+        <%= form.password_field :app_password, required: true, autocomplete: "current-password", class: "form-input", placeholder: "Пароль програми" %>
+        <%= form.submit "Підключити Apple Calendar", class: "cta-primary cursor-pointer sm:col-span-2" %>
+      <% end %>
+      <p class="mt-3 text-xs text-[var(--ink-soft)]">Використовується read-only CalDAV-доступ. Пароль зберігається у зашифрованому полі.</p>
+    </div>
+
     <div class="entity-list mt-6">
       <% if @calendar_connections.any? %>
         <% @calendar_connections.each do |connection| %>
@@ -46,6 +57,9 @@
                 <% if connection.access_token.present? || connection.refresh_token.present? %>
                   <%= link_to "Вибрати календарі", select_outlook_calendar_calendar_connection_path(connection), class: "cta-secondary" %>
                 <% end %>
+              <% end %>
+              <% if connection.apple_calendar? %>
+                <%= link_to "Вибрати календарі", select_apple_calendar_calendar_connection_path(connection), class: "cta-secondary" %>
               <% end %>
               <%= button_to "Sync now", sync_calendar_connection_path(connection), method: :post, class: "cta-secondary cursor-pointer" %>
               <%= link_to "Edit", tab_family_path(@family, tab: "connections", edit_calendar_connection_id: connection.id), class: "cta-secondary" %>
