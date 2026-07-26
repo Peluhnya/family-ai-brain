@@ -2,8 +2,8 @@ class CalendarConnectionsController < ApplicationController
   include FamilyPageContext
 
   before_action :authenticate_user!
-  before_action :set_family, only: %i[create update destroy connect_google connect_outlook]
-  before_action :set_connection, only: %i[sync authorize_google select_google_calendar update_google_calendar authorize_outlook select_outlook_calendar update_outlook_calendar]
+  before_action :set_family, only: %i[create update destroy connect_google connect_outlook connect_apple]
+  before_action :set_connection, only: %i[sync authorize_google select_google_calendar update_google_calendar authorize_outlook select_outlook_calendar update_outlook_calendar select_apple_calendar update_apple_calendar]
   before_action :set_nested_connection, only: %i[update destroy]
 
   def create
@@ -30,6 +30,59 @@ class CalendarConnectionsController < ApplicationController
   rescue KeyError => e
     connection&.destroy
     redirect_to family_tab_redirect_path(@family, "connections"), alert: "Outlook OAuth is not configured: #{e.message}"
+  end
+
+  def connect_apple
+    apple_id = params[:apple_id].to_s.strip
+    app_password = params[:app_password].to_s.strip
+    if apple_id.blank? || app_password.blank?
+      return redirect_to family_tab_redirect_path(@family, "connections"), alert: "Вкажіть Apple ID та пароль програми."
+    end
+
+    connection = @family.calendar_connections.create!(
+      provider: "apple_calendar", display_name: "Apple Calendar", access_token: app_password,
+      active: true, settings: { "apple_id" => apple_id }
+    )
+    CalendarSync::AppleCalendarListService.new(connection:).call
+    redirect_to select_apple_calendar_calendar_connection_path(connection), notice: "Apple Calendar підключено. Оберіть календарі для синхронізації."
+  rescue StandardError => e
+    connection&.destroy
+    redirect_to family_tab_redirect_path(@family, "connections"), alert: "Не вдалося підключити Apple Calendar: #{e.message}"
+  end
+
+  def select_apple_calendar
+    unless @calendar_connection.apple_calendar?
+      return redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Calendar selection is available only for Apple Calendar connections."
+    end
+
+    @apple_calendars = CalendarSync::AppleCalendarListService.new(connection: @calendar_connection).call
+    @selected_apple_calendar_ids = @calendar_connection.settings.fetch("apple_calendar_ids", [])
+  rescue StandardError => e
+    redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Could not load Apple calendars: #{e.message}"
+  end
+
+  def update_apple_calendar
+    calendars = CalendarSync::AppleCalendarListService.new(connection: @calendar_connection).call
+    requested_ids = Array(params[:apple_calendar_ids]).compact_blank.uniq
+    available_ids = calendars.pluck(:id)
+    selected_calendars = calendars.select { |calendar| requested_ids.include?(calendar[:id]) }
+    return redirect_to select_apple_calendar_calendar_connection_path(@calendar_connection), alert: "Оберіть щонайменше один календар." if requested_ids.empty?
+    unless requested_ids.all? { |calendar_id| available_ids.include?(calendar_id) }
+      return redirect_to select_apple_calendar_calendar_connection_path(@calendar_connection), alert: "Один або декілька вибраних календарів недоступні."
+    end
+
+    @calendar_connection.update!(remote_calendar_id: requested_ids.sort.join(","), display_name: "Apple Calendar (#{selected_calendars.size})",
+      sync_cursor: nil, settings: @calendar_connection.settings.merge("apple_calendar_ids" => requested_ids,
+        "apple_calendar_names" => selected_calendars.to_h { |calendar| [ calendar[:id], calendar[:summary] ] }))
+    remove_unselected_events!(provider: "apple_calendar", calendar_ids: available_ids - requested_ids, hashed_prefixes: true)
+    result = CalendarSync::ConnectionSyncService.new(connection: @calendar_connection).call
+    if result[:error].present?
+      redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Налаштування збережено, але синхронізація не вдалася: #{result[:error]}"
+    else
+      redirect_to family_tab_redirect_path(@calendar_connection.family, "calendar"), notice: "Вибрані календарі збережено. Синхронізовано подій: #{result[:imported]}."
+    end
+  rescue StandardError => e
+    redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Could not save selected Apple calendar: #{e.message}"
   end
 
   def update
@@ -205,8 +258,8 @@ class CalendarConnectionsController < ApplicationController
     remove_unselected_events!(provider: "google_calendar", calendar_ids:)
   end
 
-  def remove_unselected_events!(provider:, calendar_ids:)
-    prefixes = calendar_ids.map { |calendar_id| "#{calendar_id}:" }
+  def remove_unselected_events!(provider:, calendar_ids:, hashed_prefixes: false)
+    prefixes = calendar_ids.map { |calendar_id| "#{hashed_prefixes ? Digest::SHA256.hexdigest(calendar_id) : calendar_id}:" }
     return if prefixes.empty?
 
     @calendar_connection.family.events.where(source_key: provider).find_each do |event|

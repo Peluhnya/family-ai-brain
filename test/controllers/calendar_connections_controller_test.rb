@@ -131,4 +131,34 @@ class CalendarConnectionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Оберіть щонайменше один календар.", flash[:alert]
     assert_nil connection.reload.settings["google_calendar_ids"]
   end
+  test "connects Apple credentials and redirects to calendar selection" do
+    list_service = Object.new
+    list_service.define_singleton_method(:call) { [ { id: "https://caldav.test/family/", summary: "Family" } ] }
+
+    assert_difference -> { @family.calendar_connections.count }, 1 do
+      CalendarSync::AppleCalendarListService.stub(:new, list_service) do
+        post family_connect_apple_calendar_url(@family), params: { apple_id: "owner@icloud.com", app_password: "abcd-efgh-ijkl-mnop" }
+      end
+    end
+
+    connection = @family.calendar_connections.order(:created_at).last
+    assert_redirected_to select_apple_calendar_calendar_connection_url(connection)
+    assert_equal "apple_calendar", connection.provider
+    assert_equal "owner@icloud.com", connection.settings["apple_id"]
+    assert_equal "abcd-efgh-ijkl-mnop", connection.access_token
+  end
+
+  test "does not save an Apple connection when credentials are rejected" do
+    list_service = Object.new
+    list_service.define_singleton_method(:call) { raise "invalid credentials" }
+
+    assert_no_difference -> { @family.calendar_connections.count } do
+      CalendarSync::AppleCalendarListService.stub(:new, list_service) do
+        post family_connect_apple_calendar_url(@family), params: { apple_id: "owner@icloud.com", app_password: "wrong" }
+      end
+    end
+
+    assert_redirected_to tab_family_url(@family, tab: "connections")
+    assert_match "invalid credentials", flash[:alert]
+  end
 end

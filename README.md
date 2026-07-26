@@ -64,6 +64,12 @@ microsoft:
 
 In **Calendar connections**, click **Підключити Outlook Calendar**, authorize the Microsoft account, and select one or more calendars. The app requests read-only calendar and offline access, refreshes tokens when needed, and stores tokens encrypted with Active Record Encryption.
 
+## Apple Calendar (iCloud CalDAV)
+
+Apple Calendar is connected with an Apple ID and an app-specific password. Create the password in the Apple Account security settings, then enter both values in the family's **Calendar connections** tab. The app discovers the account's iCloud calendars over CalDAV, lets the user select one or more calendars, and imports their events in read-only mode.
+
+The app-specific password is stored in the encrypted `access_token` field. Revoking that password in the Apple Account immediately removes the application's CalDAV access.
+
 ## Development
 
 ```bash

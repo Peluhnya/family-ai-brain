@@ -27,9 +27,13 @@ class CalendarConnection < ApplicationRecord
     provider == "outlook_calendar"
   end
 
+  def apple_calendar?
+    provider == "apple_calendar"
+  end
+
   def effective_remote_calendar_id
     return remote_calendar_id if remote_calendar_id.present?
-    return nil if google_calendar? || outlook_calendar?
+    return nil if google_calendar? || outlook_calendar? || apple_calendar?
 
     nil
   end
