@@ -1,6 +1,7 @@
 module FamiliesHelper
   FAMILY_TAB_DEFINITIONS = [
     { key: "chat", label: "Чат", icon: "message" },
+    { key: "calendar", label: "Календар", icon: "calendar", count: false },
     { key: "tasks", label: "Задачі", icon: "check" },
     { key: "events", label: "Події", icon: "calendar" },
     { key: "reminders", label: "Нагадування", icon: "bell" },
@@ -41,6 +42,38 @@ module FamiliesHelper
 
   def family_tab_count_dom_id(family, tab_key)
     "#{dom_id(family)}_tab_count_#{tab_key}"
+  end
+
+  def family_calendar_entries(family)
+    zone = ActiveSupport::TimeZone[family.timezone.presence] || Time.zone
+    entries = Hash.new { |hash, date| hash[date] = [] }
+
+    @calendar_events.each do |event|
+      start_date = event.start_time.in_time_zone(zone).to_date
+      finish_at = event.display_end_time || event.start_time
+      finish_date = finish_at.in_time_zone(zone).to_date
+      (start_date..finish_date).each do |date|
+        next unless date.between?(@calendar_grid_start, @calendar_grid_end)
+
+        entries[date] << { type: "event", title: event.title, time: event.all_day? ? nil : event.start_time.in_time_zone(zone), record: event,
+          continues_before: date > start_date, continues_after: date < finish_date }
+      end
+    end
+
+    [ [ @calendar_tasks, "task", :due_at ], [ @calendar_reminders, "reminder", :trigger_at ], [ @calendar_life_logs, "log", :happened_at ] ].each do |records, type, attribute|
+      records.each do |record|
+        time = record.public_send(attribute).in_time_zone(zone)
+        entries[time.to_date] << { type:, title: type == "log" ? record.summary : record.title, time:, record: }
+      end
+    end
+
+    entries.each_value { |items| items.sort_by! { |item| [ item[:time].nil? ? 0 : 1, item[:time] || Time.at(0), item[:title].to_s ] } }
+    entries
+  end
+
+  def family_calendar_entry_href(family, entry)
+    tab = { "event" => "events", "task" => "tasks", "reminder" => "reminders", "log" => "logs" }.fetch(entry[:type])
+    "#{family_tab_href(family, tab)}##{dom_id(entry[:record])}"
   end
 
   def conversation_display_title(conversation, family)

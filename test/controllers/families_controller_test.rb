@@ -30,6 +30,39 @@ class FamiliesControllerTest < ActionDispatch::IntegrationTest
     assert_select "form#ai_interaction_form"
   end
 
+  test "calendar combines dated family records and repeats multi-day events" do
+    sign_in users(:one)
+    @family.update!(timezone: "UTC")
+    event = @family.events.create!(
+      title: "Сімейна подорож",
+      start_time: Time.zone.parse("2026-07-10 09:00"),
+      end_time: Time.zone.parse("2026-07-12 18:00"),
+      source: "manual"
+    )
+    task = @family.tasks.create!(title: "Купити квитки", due_at: Time.zone.parse("2026-07-11 12:30"), status: "pending", priority: 3)
+    @family.reminders.create!(title: "Взяти паспорти", trigger_at: Time.zone.parse("2026-07-10 08:00"), channel: "app", status: "pending")
+    @family.life_logs.create!(event_type: "routine", summary: "Спланували маршрут", happened_at: Time.zone.parse("2026-07-09 20:00"), importance: 0.7)
+
+    get tab_family_url(@family, tab: "calendar", month: "2026-07-01")
+
+    assert_response :success
+    assert_select "a.family-tab-link.active", text: /Календар/
+    assert_select "article.calendar-day", count: 35
+    assert_select "a.calendar-item-event[href='#{tab_family_path(@family, tab: "events")}##{ActionView::RecordIdentifier.dom_id(event)}']", count: 3
+    assert_select "a.calendar-item-task", text: /12:30.*Купити квитки/
+    assert_select "a.calendar-item-reminder", text: /Взяти паспорти/
+    assert_select "a.calendar-item-log", text: /Спланували маршрут/
+  end
+
+  test "calendar falls back to the current month for an invalid month" do
+    sign_in users(:one)
+
+    get tab_family_url(@family, tab: "calendar", month: "not-a-date")
+
+    assert_response :success
+    assert_select "article.calendar-day"
+  end
+
   test "moves ai diagnostics out of chat and into a paginated tab" do
     sign_in users(:one)
 

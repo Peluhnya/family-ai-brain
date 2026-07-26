@@ -1,0 +1,49 @@
+<% entries_by_date = family_calendar_entries(@family) %>
+<% today = @family.local_date %>
+<% previous_month = (@calendar_month - 1.month).strftime("%Y-%m-%d") %>
+<% next_month = (@calendar_month + 1.month).strftime("%Y-%m-%d") %>
+
+<section class="calendar-panel">
+  <header class="calendar-header">
+    <div>
+      <p class="label-kicker">Спільний розклад</p>
+      <h2 class="entity-title text-2xl"><%= I18n.l(@calendar_month, format: "%B %Y").capitalize %></h2>
+      <p class="muted-copy mt-2">Події, задачі, нагадування та записи історії в одному місці.</p>
+    </div>
+    <nav class="calendar-controls" aria-label="Навігація календаря">
+      <%= link_to "‹", tab_family_path(@family, tab: "calendar", month: previous_month), class: "calendar-control", aria: { label: "Попередній місяць" }, data: { turbo_frame: "family_tab_content", turbo_action: "advance" } %>
+      <%= link_to "Сьогодні", tab_family_path(@family, tab: "calendar"), class: "calendar-control calendar-today", data: { turbo_frame: "family_tab_content", turbo_action: "advance" } %>
+      <%= link_to "›", tab_family_path(@family, tab: "calendar", month: next_month), class: "calendar-control", aria: { label: "Наступний місяць" }, data: { turbo_frame: "family_tab_content", turbo_action: "advance" } %>
+    </nav>
+  </header>
+
+  <div class="calendar-legend" aria-label="Типи записів">
+    <span><i class="calendar-dot calendar-dot-event"></i>Події</span>
+    <span><i class="calendar-dot calendar-dot-task"></i>Задачі</span>
+    <span><i class="calendar-dot calendar-dot-reminder"></i>Нагадування</span>
+    <span><i class="calendar-dot calendar-dot-log"></i>Історія</span>
+  </div>
+
+  <div class="calendar-scroll">
+    <div class="calendar-grid calendar-weekdays" aria-hidden="true">
+      <% %w[Пн Вт Ср Чт Пт Сб Нд].each do |weekday| %><div><%= weekday %></div><% end %>
+    </div>
+    <div class="calendar-grid calendar-days">
+      <% (@calendar_grid_start..@calendar_grid_end).each do |date| %>
+        <article class="calendar-day <%= "calendar-day-outside" unless date.month == @calendar_month.month %> <%= "calendar-day-today" if date == today %>">
+          <time datetime="<%= date.iso8601 %>" class="calendar-date"><%= date.day %></time>
+          <div class="calendar-items">
+            <% entries_by_date[date].each do |entry| %>
+              <%= link_to family_calendar_entry_href(@family, entry), class: "calendar-item calendar-item-#{entry[:type]}", title: entry[:title], data: { turbo_frame: "_top" } do %>
+                <% if entry[:continues_before] %><span aria-hidden="true">←</span><% end %>
+                <% if entry[:time] %><time><%= entry[:time].strftime("%H:%M") %></time><% end %>
+                <span class="calendar-item-title"><%= entry[:title] %></span>
+                <% if entry[:continues_after] %><span aria-hidden="true">→</span><% end %>
+              <% end %>
+            <% end %>
+          </div>
+        </article>
+      <% end %>
+    </div>
+  </div>
+</section>

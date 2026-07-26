@@ -2,7 +2,7 @@ module FamilyPageContext
   extend ActiveSupport::Concern
 
   FAMILY_TABS = %w[
-    chat documents reminders connections events tasks automations knowledge logs ai_logs members
+    chat calendar documents reminders connections events tasks automations knowledge logs ai_logs members
   ].freeze
   AI_LOG_PAGE_SIZE = 10
 
@@ -75,6 +75,8 @@ module FamilyPageContext
       load_active_conversation_messages
       @viewing_today_conversation = @active_conversation == @today_conversation
       @ai_interaction = form_overrides.fetch(:ai_interaction, @family.ai_interactions.new)
+    when "calendar"
+      load_calendar_data
     when "documents"
       @documents = @family.documents.recent_first.limit(20)
       @document_form = form_overrides.fetch(:document_form, selected_record(@family.documents, :edit_document_id) || @family.documents.new)
@@ -137,6 +139,26 @@ module FamilyPageContext
       @available_users = available_users_for(@account)
       @family_member_form = form_overrides.fetch(:family_member_form, selected_record(@family.family_members, :edit_family_member_id) || @family.family_members.new)
     end
+  end
+
+  def load_calendar_data
+    requested_month = Date.iso8601(params[:month].to_s) if params[:month].present?
+    @calendar_month = (requested_month || @family.local_date).beginning_of_month
+  rescue Date::Error
+    @calendar_month = @family.local_date.beginning_of_month
+  ensure
+    @calendar_grid_start = @calendar_month.beginning_of_week(:monday)
+    @calendar_grid_end = @calendar_month.end_of_month.end_of_week(:monday)
+    zone = ActiveSupport::TimeZone[@family.timezone.presence] || Time.zone
+    range_start = zone.local(@calendar_grid_start.year, @calendar_grid_start.month, @calendar_grid_start.day)
+    range_end = zone.local(@calendar_grid_end.year, @calendar_grid_end.month, @calendar_grid_end.day).end_of_day
+
+    @calendar_events = @family.events
+      .where("start_time <= ? AND COALESCE(end_time, start_time) >= ?", range_end, range_start)
+      .order(:start_time)
+    @calendar_tasks = @family.tasks.where(due_at: range_start..range_end).order(:due_at)
+    @calendar_reminders = @family.reminders.where(trigger_at: range_start..range_end).order(:trigger_at)
+    @calendar_life_logs = @family.life_logs.where(happened_at: range_start..range_end).order(:happened_at)
   end
 
   def available_users_for(account)
