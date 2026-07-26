@@ -9,13 +9,16 @@ module CalendarSync
     def fetch_events
       raise "Google Calendar connection is missing credentials." unless @connection.ready_for_remote_sync?
 
-      google_calendars.flat_map { |calendar| fetch_calendar_events(calendar.fetch(:id)) }
+      selected_calendar_ids.flat_map { |calendar_id| fetch_calendar_events(calendar_id) }
     end
 
     private
 
-    def google_calendars
-      CalendarSync::GoogleCalendarListService.new(connection: @connection).call
+    def selected_calendar_ids
+      ids = Array(@connection.settings["google_calendar_ids"]).compact_blank.uniq
+      raise "Choose at least one Google calendar to sync." if ids.empty?
+
+      ids
     end
 
     def fetch_calendar_events(calendar_id)

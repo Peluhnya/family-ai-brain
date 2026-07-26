@@ -52,4 +52,83 @@ class CalendarConnectionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
   end
+
+  test "saves and syncs only selected Google calendars" do
+    connection = @family.calendar_connections.create!(
+      provider: "google_calendar",
+      remote_calendar_id: "all",
+      access_token: "test-token"
+    )
+    calendars = [
+      { id: "primary@example.com", summary: "Особистий", time_zone: "Europe/Kyiv" },
+      { id: "family@example.com", summary: "Сімейний", time_zone: "Europe/Kyiv" },
+      { id: "work@example.com", summary: "Робота", time_zone: "Europe/Kyiv" }
+    ]
+    list_service = Object.new
+    list_service.define_singleton_method(:call) { calendars }
+    sync_service = Object.new
+    sync_service.define_singleton_method(:call) { { imported: 4, error: nil } }
+
+    CalendarSync::GoogleCalendarListService.stub(:new, list_service) do
+      CalendarSync::ConnectionSyncService.stub(:new, sync_service) do
+        post update_google_calendar_calendar_connection_url(connection), params: {
+          google_calendar_ids: [ "primary@example.com", "family@example.com" ]
+        }
+      end
+    end
+
+    assert_redirected_to tab_family_url(@family, tab: "calendar")
+    assert_equal [ "primary@example.com", "family@example.com" ], connection.reload.settings["google_calendar_ids"]
+    assert_equal "Google Calendar (2)", connection.display_name
+  end
+
+  test "removes imported events after their Google calendar is deselected" do
+    connection = @family.calendar_connections.create!(
+      provider: "google_calendar",
+      remote_calendar_id: "selected",
+      access_token: "test-token",
+      settings: { "google_calendar_ids" => [ "primary@example.com", "shared@example.com" ] }
+    )
+    retained_event = @family.events.create!(
+      title: "Особиста подія", start_time: Time.zone.parse("2026-08-01 10:00"),
+      external_id: "primary@example.com:event-1", source: "google_calendar"
+    )
+    removed_event = @family.events.create!(
+      title: "Спільна подія", start_time: Time.zone.parse("2026-08-02 10:00"),
+      external_id: "shared@example.com:event-2", source: "google_calendar"
+    )
+    calendars = [
+      { id: "primary@example.com", summary: "Особистий" },
+      { id: "shared@example.com", summary: "Спільний" }
+    ]
+    list_service = Object.new
+    list_service.define_singleton_method(:call) { calendars }
+    sync_service = Object.new
+    sync_service.define_singleton_method(:call) { { imported: 1, error: nil } }
+
+    CalendarSync::GoogleCalendarListService.stub(:new, list_service) do
+      CalendarSync::ConnectionSyncService.stub(:new, sync_service) do
+        post update_google_calendar_calendar_connection_url(connection), params: {
+          google_calendar_ids: [ "primary@example.com" ]
+        }
+      end
+    end
+
+    assert_predicate retained_event.reload, :persisted?
+    assert_not Event.exists?(removed_event.id)
+  end
+
+  test "does not allow saving an empty Google calendar selection" do
+    connection = @family.calendar_connections.create!(provider: "google_calendar", access_token: "test-token")
+    list_service = Object.new
+    list_service.define_singleton_method(:call) { [ { id: "primary@example.com", summary: "Особистий" } ] }
+
+    CalendarSync::GoogleCalendarListService.stub(:new, list_service) do
+      post update_google_calendar_calendar_connection_url(connection)
+    end
+
+    assert_redirected_to select_google_calendar_calendar_connection_url(connection)
+    assert_equal "Оберіть щонайменше один календар.", flash[:alert]
+    assert_nil connection.reload.settings["google_calendar_ids"]
+  end
 end

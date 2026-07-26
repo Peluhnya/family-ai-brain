@@ -6,15 +6,13 @@ module CalendarSync
       @connection = families(:one).calendar_connections.create!(
         provider: "google_calendar",
         remote_calendar_id: "all",
-        access_token: "test-token"
+        access_token: "test-token",
+        settings: { "google_calendar_ids" => [ "primary@example.com", "shared@example.com" ] }
       )
     end
 
     test "fetches every page from every Google calendar and namespaces event ids" do
       adapter = GoogleCalendarAdapter.new(connection: @connection)
-      adapter.define_singleton_method(:google_calendars) do
-        [ { id: "primary@example.com" }, { id: "shared@example.com" } ]
-      end
       adapter.define_singleton_method(:get_events_page) do |calendar_id:, page_token:, refreshed: false|
         raise "unexpected refresh" if refreshed
 
@@ -50,6 +48,14 @@ module CalendarSync
       assert_equal 2, events.size
       assert_equal [ "primary@example.com:same-id", "shared@example.com:same-id" ], events.pluck(:external_id)
       assert_equal [ true, false ], events.pluck(:all_day)
+    end
+
+    test "requires at least one selected calendar" do
+      @connection.update!(settings: { "google_calendar_ids" => [] })
+
+      error = assert_raises(RuntimeError) { GoogleCalendarAdapter.new(connection: @connection).fetch_events }
+
+      assert_equal "Choose at least one Google calendar to sync.", error.message
     end
   end
 end

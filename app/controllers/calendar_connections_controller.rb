@@ -57,14 +57,7 @@ class CalendarConnectionsController < ApplicationController
 
     connection = CalendarConnection.joins(family: :account).where(accounts: { user_id: current_user.id }).find(connection_id)
     google_oauth_service(connection).exchange_code!(code: params.expect(:code))
-    connection.update!(remote_calendar_id: "all", display_name: "Усі календарі Google", sync_cursor: nil)
-    result = CalendarSync::ConnectionSyncService.new(connection:).call
-
-    if result[:error].present?
-      redirect_to family_tab_redirect_path(connection.family, "connections"), alert: "Google підключено, але синхронізація не вдалася: #{result[:error]}"
-    else
-      redirect_to family_tab_redirect_path(connection.family, "calendar"), notice: "Google Calendar підключено. Синхронізовано подій: #{result[:imported]}."
-    end
+    redirect_to select_google_calendar_calendar_connection_path(connection), notice: "Google Calendar підключено. Оберіть календарі для синхронізації."
   rescue KeyError => e
     redirect_to root_path, alert: "Google OAuth is not configured: #{e.message}"
   rescue StandardError => e
@@ -78,6 +71,7 @@ class CalendarConnectionsController < ApplicationController
     end
 
     @google_calendars = CalendarSync::GoogleCalendarListService.new(connection: @calendar_connection).call
+    @selected_google_calendar_ids = @calendar_connection.settings.fetch("google_calendar_ids", [])
   rescue StandardError => e
     redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Could not load Google calendars: #{e.message}"
   end
@@ -87,22 +81,35 @@ class CalendarConnectionsController < ApplicationController
       return redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Calendar selection is available only for Google Calendar connections."
     end
 
-    calendar_id = params.expect(:remote_calendar_id)
     calendars = CalendarSync::GoogleCalendarListService.new(connection: @calendar_connection).call
-    selected_calendar = calendars.find { |calendar| calendar[:id] == calendar_id }
-    return redirect_to select_google_calendar_calendar_connection_path(@calendar_connection), alert: "Selected Google calendar was not found." unless selected_calendar
+    requested_ids = Array(params[:google_calendar_ids]).compact_blank.uniq
+    available_ids = calendars.pluck(:id)
+    selected_calendars = calendars.select { |calendar| requested_ids.include?(calendar[:id]) }
+
+    if requested_ids.empty?
+      return redirect_to select_google_calendar_calendar_connection_path(@calendar_connection), alert: "Оберіть щонайменше один календар."
+    end
+    unless requested_ids.all? { |calendar_id| available_ids.include?(calendar_id) }
+      return redirect_to select_google_calendar_calendar_connection_path(@calendar_connection), alert: "Один або декілька вибраних календарів недоступні."
+    end
 
     @calendar_connection.update!(
-      remote_calendar_id: selected_calendar[:id],
-      display_name: selected_calendar[:summary],
+      remote_calendar_id: requested_ids.sort.join(","),
+      display_name: "Google Calendar (#{selected_calendars.size})",
+      sync_cursor: nil,
       settings: @calendar_connection.settings.merge(
-        "provider_timezone" => selected_calendar[:time_zone].presence || @calendar_connection.settings["provider_timezone"],
-        "google_access_role" => selected_calendar[:access_role],
-        "google_primary" => selected_calendar[:primary]
+        "google_calendar_ids" => requested_ids,
+        "google_calendar_names" => selected_calendars.to_h { |calendar| [ calendar[:id], calendar[:summary] ] }
       )
     )
+    remove_unselected_google_events!(available_ids - requested_ids)
+    result = CalendarSync::ConnectionSyncService.new(connection: @calendar_connection).call
 
-    redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), notice: "Google calendar was selected for sync. Під час наступної синхронізації буде завантажено всі доступні календарі."
+    if result[:error].present?
+      redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Налаштування збережено, але синхронізація не вдалася: #{result[:error]}"
+    else
+      redirect_to family_tab_redirect_path(@calendar_connection.family, "calendar"), notice: "Вибрані календарі збережено. Синхронізовано подій: #{result[:imported]}."
+    end
   rescue StandardError => e
     redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Could not save selected Google calendar: #{e.message}"
   end
@@ -119,6 +126,15 @@ class CalendarConnectionsController < ApplicationController
   end
 
   private
+
+  def remove_unselected_google_events!(calendar_ids)
+    prefixes = calendar_ids.map { |calendar_id| "#{calendar_id}:" }
+    return if prefixes.empty?
+
+    @calendar_connection.family.events.where(source_key: "google_calendar").find_each do |event|
+      event.destroy! if prefixes.any? { |prefix| event.external_id.to_s.start_with?(prefix) }
+    end
+  end
 
   def set_family
     @family = Family.joins(:account).where(accounts: { user_id: current_user.id }).find(params.expect(:family_id))
