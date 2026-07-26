@@ -6,8 +6,9 @@ class Event < ApplicationRecord
   SOURCES = %w[manual ai_chat automation_rule google_calendar apple_calendar outlook_calendar imported].freeze
 
   belongs_to :family
+  belongs_to :calendar_connection, optional: true
 
-  encrypts :title, :location, :external_id, :source
+  encrypts :title, :location, :external_id, :external_calendar_id, :external_event_id, :source
 
   validates :title, presence: true
   validates :start_time, presence: true
@@ -27,12 +28,13 @@ class Event < ApplicationRecord
     end_time - 1.day
   end
 
-  def self.sync_fingerprint_for(source_key:, external_id:)
+  def self.sync_fingerprint_for(source_key:, external_id:, calendar_connection_id: nil)
     source_value = source_key.to_s.strip
     external_value = external_id.to_s.strip
     return if source_value.blank? || external_value.blank?
 
-    Digest::SHA256.hexdigest("#{source_value}:#{external_value}")
+    identity = [ source_value, calendar_connection_id, external_value ].compact.join(":")
+    Digest::SHA256.hexdigest(identity)
   end
 
   private
@@ -41,7 +43,11 @@ class Event < ApplicationRecord
     normalized_source = normalize_source_value(source_key.presence || source)
     self.source_key = normalized_source
     self.source = normalized_source if source.blank? || normalized_source.present?
-    self.sync_fingerprint = self.class.sync_fingerprint_for(source_key: normalized_source, external_id:)
+    self.sync_fingerprint = self.class.sync_fingerprint_for(
+      source_key: normalized_source,
+      external_id:,
+      calendar_connection_id:
+    )
   end
 
   def normalize_source_value(value)

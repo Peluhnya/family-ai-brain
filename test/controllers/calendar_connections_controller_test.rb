@@ -91,11 +91,11 @@ class CalendarConnectionsControllerTest < ActionDispatch::IntegrationTest
     )
     retained_event = @family.events.create!(
       title: "Особиста подія", start_time: Time.zone.parse("2026-08-01 10:00"),
-      external_id: "primary@example.com:event-1", source: "google_calendar"
+      external_id: "primary@example.com:event-1", source: "google_calendar", calendar_connection: connection
     )
     removed_event = @family.events.create!(
       title: "Спільна подія", start_time: Time.zone.parse("2026-08-02 10:00"),
-      external_id: "shared@example.com:event-2", source: "google_calendar"
+      external_id: "shared@example.com:event-2", source: "google_calendar", calendar_connection: connection
     )
     calendars = [
       { id: "primary@example.com", summary: "Особистий" },

@@ -28,6 +28,27 @@ module CalendarSync
       imported = family.events.where(source_key: "google_calendar").order(:title)
       assert_equal [ "Спільний", "Основний" ], imported.map(&:title)
       assert_equal [ false, true ], imported.map(&:all_day?)
+      assert_equal [ connection.id ], imported.map(&:calendar_connection_id).uniq
+      assert_equal [ "primary", "shared" ], imported.map(&:external_calendar_id).sort
+      assert_equal [ "event-1" ], imported.map(&:external_event_id).uniq
+    end
+
+    test "keeps equal provider event identities separate across connections" do
+      family = families(:one)
+      connections = 2.times.map do
+        family.calendar_connections.create!(provider: "google_calendar", access_token: "token-#{_1}")
+      end
+      adapter = Object.new
+      adapter.define_singleton_method(:fetch_events) do
+        [ { external_id: "primary:event-1", external_calendar_id: "primary", external_event_id: "event-1",
+            title: "Event", start_time: Time.zone.parse("2026-08-01") } ]
+      end
+
+      assert_difference -> { family.events.count }, 2 do
+        ProviderAdapter.stub(:for, adapter) do
+          connections.each { |connection| ConnectionSyncService.new(connection:).call }
+        end
+      end
     end
   end
 end

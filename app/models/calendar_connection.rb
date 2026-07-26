@@ -6,6 +6,7 @@ class CalendarConnection < ApplicationRecord
   PROVIDERS = %w[google_calendar apple_calendar outlook_calendar].freeze
 
   belongs_to :family
+  has_many :events, dependent: :destroy
 
   encrypts :display_name, :remote_calendar_id, :access_token, :refresh_token, :sync_cursor, :last_error
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_232100) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_26_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -196,9 +196,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_232100) do
 
   create_table "events", force: :cascade do |t|
     t.boolean "all_day", default: false, null: false
+    t.bigint "calendar_connection_id"
     t.datetime "created_at", null: false
     t.datetime "end_time"
+    t.string "external_calendar_id"
     t.string "external_id"
+    t.string "external_event_id"
+    t.datetime "external_updated_at"
     t.bigint "family_id", null: false
     t.string "location"
     t.string "source"
@@ -207,6 +211,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_232100) do
     t.string "sync_fingerprint"
     t.string "title", null: false
     t.datetime "updated_at", null: false
+    t.index ["calendar_connection_id"], name: "index_events_on_calendar_connection_id"
     t.index ["external_id"], name: "index_events_on_external_id"
     t.index ["family_id", "sync_fingerprint"], name: "index_events_on_family_and_sync_fingerprint", unique: true, where: "(sync_fingerprint IS NOT NULL)"
     t.index ["family_id"], name: "index_events_on_family_id"
@@ -345,6 +350,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_232100) do
   add_foreign_key "conversations", "families"
   add_foreign_key "documents", "families"
   add_foreign_key "events", "families"
+  add_foreign_key "events", "calendar_connections"
   add_foreign_key "families", "accounts"
   add_foreign_key "family_knowledge", "families"
   add_foreign_key "family_members", "families"
