@@ -18,6 +18,10 @@ module CalendarSync
         end_time: @payload[:end_time],
         all_day: @payload[:all_day] == true,
         location: @payload[:location],
+        calendar_connection: @payload[:calendar_connection],
+        external_calendar_id: @payload[:external_calendar_id],
+        external_event_id: @payload[:external_event_id],
+        external_updated_at: @payload[:external_updated_at],
         external_id: @payload[:external_id],
         source: @payload[:source],
         source_key: @payload[:source_key]

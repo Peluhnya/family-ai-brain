@@ -262,7 +262,7 @@ class CalendarConnectionsController < ApplicationController
     prefixes = calendar_ids.map { |calendar_id| "#{hashed_prefixes ? Digest::SHA256.hexdigest(calendar_id) : calendar_id}:" }
     return if prefixes.empty?
 
-    @calendar_connection.family.events.where(source_key: provider).find_each do |event|
+    @calendar_connection.events.where(source_key: provider).find_each do |event|
       event.destroy! if prefixes.any? { |prefix| event.external_id.to_s.start_with?(prefix) }
     end
   end

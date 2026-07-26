@@ -88,6 +88,9 @@ module CalendarSync
         # Google event ids are unique only inside a calendar. Prefixing the id
         # prevents an event in a shared calendar from replacing another one.
         external_id: "#{calendar_id}:#{item['id']}",
+        external_calendar_id: calendar_id,
+        external_event_id: item["id"],
+        external_updated_at: item["updated"].present? ? Time.zone.parse(item["updated"]) : nil,
         title: item["summary"].presence || "Google Calendar event",
         start_time: start_time,
         end_time: end_time,

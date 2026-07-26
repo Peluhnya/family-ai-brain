@@ -34,10 +34,14 @@ module CalendarSync
         end_time: payload[:end_time],
         all_day: payload[:all_day] == true,
         location: payload[:location].to_s.strip.presence,
+        calendar_connection: @connection,
+        external_calendar_id: payload[:external_calendar_id].to_s.strip.presence,
+        external_event_id: payload[:external_event_id].to_s.strip.presence,
+        external_updated_at: payload[:external_updated_at],
         external_id: external_id,
         source: source_key,
         source_key: source_key,
-        sync_fingerprint: Event.sync_fingerprint_for(source_key:, external_id:),
+        sync_fingerprint: Event.sync_fingerprint_for(source_key:, external_id:, calendar_connection_id: @connection.id),
         deleted: payload[:deleted]
       }
     end

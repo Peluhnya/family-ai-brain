@@ -41,6 +41,8 @@ module CalendarSync
       recurrence_id = fields.find { |key, _| key.start_with?("RECURRENCE-ID") }&.last
       {
         external_id: "#{Digest::SHA256.hexdigest(calendar_id)}:#{uid}:#{recurrence_id}",
+        external_calendar_id: calendar_id,
+        external_event_id: [ uid, recurrence_id ].compact.join(":"),
         title: unescape(fields["SUMMARY"]).presence || "Apple Calendar event",
         start_time: parse_time(fields[start_key], all_day: date_value?(start_key)),
         end_time: parse_time(fields[end_key], all_day: date_value?(end_key)),

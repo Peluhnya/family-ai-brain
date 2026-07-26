@@ -21,7 +21,7 @@ module CalendarSync
 
     def fetch_calendar_events(calendar_id)
       events = []
-      url = "https://graph.microsoft.com/v1.0/me/calendars/#{CGI.escape(calendar_id)}/events?%24top=250&%24select=id,subject,start,end,isAllDay,location,isCancelled"
+      url = "https://graph.microsoft.com/v1.0/me/calendars/#{CGI.escape(calendar_id)}/events?%24top=250&%24select=id,subject,start,end,isAllDay,location,isCancelled,lastModifiedDateTime"
       while url.present?
         body = get(url)
         events.concat(Array(body["value"]).map { |item| normalize_event(item, calendar_id:) })
@@ -60,6 +60,9 @@ module CalendarSync
     def normalize_event(item, calendar_id:)
       {
         external_id: "#{calendar_id}:#{item['id']}",
+        external_calendar_id: calendar_id,
+        external_event_id: item["id"],
+        external_updated_at: item["lastModifiedDateTime"].present? ? Time.zone.parse(item["lastModifiedDateTime"]) : nil,
         title: item["subject"].presence || "Outlook Calendar event",
         start_time: parse_time(item["start"]),
         end_time: parse_time(item["end"]),

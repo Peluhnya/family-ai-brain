@@ -26,6 +26,10 @@ development:
     class: RunDueRemindersJob
     queue: default
     schedule: every minute
+  schedule_calendar_syncs:
+    class: ScheduleCalendarSyncsJob
+    queue: default
+    schedule: every 5 minutes
 
 production:
   prune_ai_effects:
@@ -44,6 +48,10 @@ production:
     class: RunDueRemindersJob
     queue: default
     schedule: every minute
+  schedule_calendar_syncs:
+    class: ScheduleCalendarSyncsJob
+    queue: default
+    schedule: every 5 minutes
 
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
