@@ -57,8 +57,14 @@ class CalendarConnectionsController < ApplicationController
 
     connection = CalendarConnection.joins(family: :account).where(accounts: { user_id: current_user.id }).find(connection_id)
     google_oauth_service(connection).exchange_code!(code: params.expect(:code))
+    connection.update!(remote_calendar_id: "all", display_name: "Усі календарі Google", sync_cursor: nil)
+    result = CalendarSync::ConnectionSyncService.new(connection:).call
 
-    redirect_to select_google_calendar_calendar_connection_path(connection), notice: "Google Calendar was successfully connected. Choose which calendar to sync."
+    if result[:error].present?
+      redirect_to family_tab_redirect_path(connection.family, "connections"), alert: "Google підключено, але синхронізація не вдалася: #{result[:error]}"
+    else
+      redirect_to family_tab_redirect_path(connection.family, "calendar"), notice: "Google Calendar підключено. Синхронізовано подій: #{result[:imported]}."
+    end
   rescue KeyError => e
     redirect_to root_path, alert: "Google OAuth is not configured: #{e.message}"
   rescue StandardError => e
@@ -96,7 +102,7 @@ class CalendarConnectionsController < ApplicationController
       )
     )
 
-    redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), notice: "Google calendar was selected for sync."
+    redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), notice: "Google calendar was selected for sync. Під час наступної синхронізації буде завантажено всі доступні календарі."
   rescue StandardError => e
     redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Could not save selected Google calendar: #{e.message}"
   end

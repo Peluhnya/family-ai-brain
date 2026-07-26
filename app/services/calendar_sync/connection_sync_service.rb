@@ -32,6 +32,7 @@ module CalendarSync
         title: payload[:title].to_s.strip.presence || "External event",
         start_time: payload[:start_time],
         end_time: payload[:end_time],
+        all_day: payload[:all_day] == true,
         location: payload[:location].to_s.strip.presence,
         external_id: external_id,
         source: source_key,
