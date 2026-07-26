@@ -2,7 +2,7 @@ class CalendarConnectionsController < ApplicationController
   include FamilyPageContext
 
   before_action :authenticate_user!
-  before_action :set_family, only: %i[create update destroy]
+  before_action :set_family, only: %i[create update destroy connect_google]
   before_action :set_connection, only: %i[sync authorize_google select_google_calendar update_google_calendar]
   before_action :set_nested_connection, only: %i[update destroy]
 
@@ -14,6 +14,14 @@ class CalendarConnectionsController < ApplicationController
     else
       render_family_tab_page(family: @family, active_tab: "connections", form_overrides: { calendar_connection_form: @calendar_connection }, status: :unprocessable_entity)
     end
+  end
+
+  def connect_google
+    connection = @family.calendar_connections.create!(provider: "google_calendar", active: true)
+    start_google_authorization(connection)
+  rescue KeyError => e
+    connection&.destroy
+    redirect_to family_tab_redirect_path(@family, "connections"), alert: "Google OAuth is not configured: #{e.message}"
   end
 
   def update
@@ -34,11 +42,9 @@ class CalendarConnectionsController < ApplicationController
       return redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Google OAuth is available only for Google Calendar connections."
     end
 
-    state = SecureRandom.hex(24)
-    session[:google_calendar_oauth_state] = state
-    session[:google_calendar_connection_id] = @calendar_connection.id
-
-    redirect_to google_oauth_service(@calendar_connection).authorization_url(state:), allow_other_host: true
+    start_google_authorization(@calendar_connection)
+  rescue KeyError => e
+    redirect_to family_tab_redirect_path(@calendar_connection.family, "connections"), alert: "Google OAuth is not configured: #{e.message}"
   end
 
   def google_callback
@@ -138,5 +144,14 @@ class CalendarConnectionsController < ApplicationController
 
   def google_oauth_service(connection = @calendar_connection)
     CalendarSync::GoogleOauthService.new(connection:, redirect_uri: google_callback_calendar_connections_url)
+  end
+
+  def start_google_authorization(connection)
+    state = SecureRandom.hex(24)
+    authorization_url = google_oauth_service(connection).authorization_url(state:)
+    session[:google_calendar_oauth_state] = state
+    session[:google_calendar_connection_id] = connection.id
+
+    redirect_to authorization_url, allow_other_host: true
   end
 end

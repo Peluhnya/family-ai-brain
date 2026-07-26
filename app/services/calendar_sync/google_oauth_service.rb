@@ -38,7 +38,7 @@ module CalendarSync
         grant_type: "authorization_code"
       )
 
-      persist_tokens!(payload)
+      persist_tokens!(payload, preserve_refresh_token: false)
     end
 
     def refresh_access_token!
@@ -52,16 +52,16 @@ module CalendarSync
         grant_type: "refresh_token"
       )
 
-      persist_tokens!(payload)
+      persist_tokens!(payload, preserve_refresh_token: true)
       payload.fetch("access_token")
     end
 
     private
 
-    def persist_tokens!(payload)
+    def persist_tokens!(payload, preserve_refresh_token:)
       @connection.update!(
         access_token: payload["access_token"].presence || @connection.access_token,
-        refresh_token: payload["refresh_token"].presence || @connection.refresh_token,
+        refresh_token: payload["refresh_token"].presence || (preserve_refresh_token ? @connection.refresh_token : nil),
         last_error: nil
       )
     end
@@ -83,11 +83,13 @@ module CalendarSync
     end
 
     def client_id
-      ENV.fetch("GOOGLE_CLIENT_ID")
+      ENV["GOOGLE_CLIENT_ID"].presence || Rails.application.credentials.dig(:google, :client_id).presence ||
+        raise(KeyError, "GOOGLE_CLIENT_ID is missing")
     end
 
     def client_secret
-      ENV.fetch("GOOGLE_CLIENT_SECRET")
+      ENV["GOOGLE_CLIENT_SECRET"].presence || Rails.application.credentials.dig(:google, :client_secret).presence ||
+        raise(KeyError, "GOOGLE_CLIENT_SECRET is missing")
     end
   end
 end

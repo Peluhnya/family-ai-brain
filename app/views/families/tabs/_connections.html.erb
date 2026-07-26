@@ -8,6 +8,12 @@
       <span class="meta-pill"><%= pluralize(@calendar_connections.count, "connection") %></span>
     </div>
 
+    <div class="mt-6 rounded-2xl border border-[var(--line)] bg-white/60 p-5">
+      <h3 class="text-lg font-semibold text-[var(--ink)]">Google Calendar</h3>
+      <p class="mt-2 muted-copy">Авторизуй Google-акаунт, а потім вибери календар, який потрібно приєднати до цієї сім’ї.</p>
+      <%= button_to "Підключити Google Calendar", family_connect_google_calendar_path(@family), method: :post, class: "cta-primary mt-4 cursor-pointer" %>
+    </div>
+
     <div class="entity-list mt-6">
       <% if @calendar_connections.any? %>
         <% @calendar_connections.each do |connection| %>
