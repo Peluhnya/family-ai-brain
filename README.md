@@ -70,6 +70,23 @@ Apple Calendar is connected with an Apple ID and an app-specific password. Creat
 
 The app-specific password is stored in the encrypted `access_token` field. Revoking that password in the Apple Account immediately removes the application's CalDAV access.
 
+## Hotwire Native
+
+The web app recognizes both current `Hotwire Native` and legacy `Turbo Native`
+user-agent tokens. Native requests keep the same HTML and Turbo behavior while
+hiding browser-owned navigation chrome and applying safe-area spacing.
+
+Native clients can load their remote path configuration from:
+
+```text
+/hotwire-native/configuration.json
+```
+
+Use that URL as the initial path-configuration source in both iOS and Android
+shells. The endpoint is public, cacheable for one hour, and provides defaults
+for standard navigation, authentication modals, forms, pull-to-refresh, and
+screenshots. Add future native navigation behavior to its ordered `rules` list.
+
 ## Development
 
 ```bash

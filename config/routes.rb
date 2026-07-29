@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   root "pages#home"
+  get "hotwire-native/configuration", to: "hotwire_native#configuration", defaults: { format: :json }, as: :hotwire_native_configuration
   resources :accounts do
     post :test_ai_connection, on: :member
     resources :families, only: %i[index new create]
