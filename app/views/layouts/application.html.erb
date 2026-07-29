@@ -23,7 +23,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="app-body">
+  <body class="app-body<%= " hotwire-native" if hotwire_native_app? %>" data-hotwire-native="<%= hotwire_native_app? %>">
     <div class="ambient-canvas" aria-hidden="true">
       <span class="ambient-orb ambient-orb-blue"></span>
       <span class="ambient-orb ambient-orb-violet"></span>
@@ -32,7 +32,7 @@
     </div>
 
     <div class="app-frame">
-      <header class="app-header">
+      <header class="app-header" data-hotwire-native-hide>
         <div class="app-toolbar liquid-glass">
           <%= link_to root_path, class: "app-brand", aria: { label: "Family AI Brain — головна" } do %>
             <span class="app-mark"><%= ui_icon("sparkles", class_name: "app-mark-icon") %></span>
